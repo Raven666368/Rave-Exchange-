@@ -92,29 +92,60 @@ class BotRunner:
         self.journals_col = None
         
     async def init_mongo(self):
-        if CONFIG.mongodb_uri:
+        if CONFIG.mongodb_uri and "db_password" not in CONFIG.mongodb_uri:
             try:
-                self.db_client = AsyncIOMotorClient(CONFIG.mongodb_uri, serverSelectionTimeoutMS=2000)
-                self.journals_col = self.db_client["ravebot"]["journals"]
+                self.db_client = AsyncIOMotorClient(CONFIG.mongodb_uri, serverSelectionTimeoutMS=5000)
+                db = self.db_client["ravebot"]
+                self.journals_col = db["journals"]
+                self.traces_col = db["decision_traces"]
+                self.market_data_col = db["market_data"]
                 # Ping the server to verify connection and avoid delaying error
                 await self.db_client.admin.command('ping')
-                logger.info("[MongoDB] Connected to journal database from Python Engine")
+                logger.info("[MongoDB] Connected to database (journals, decision_traces, market_data)")
             except Exception as e:
                 err_str = str(e)
                 if "timed out" in err_str.lower() or "timeout" in err_str.lower():
                     logger.warning("[MongoDB] Connection timed out. Running without MongoDB.")
                 else:
                     logger.error(f"[MongoDB] Connection error: {e}")
+        else:
+            logger.info("[MongoDB] Custom connection string not provided. Run without MongoDB.")
 
     async def log_journal(self, entry: dict):
-        if self.journals_col is not None:
+        if getattr(self, "journals_col", None) is not None:
             entry["id"] = int(datetime.utcnow().timestamp() * 1000)
             entry["createdAt"] = datetime.utcnow()
             entry["timestamp"] = datetime.utcnow().isoformat()
             try:
                 await self.journals_col.insert_one(entry)
             except Exception as e:
-                logger.error(f"[MongoDB] Error inserting journal entry: {e}")
+                logger.error(f"[MongoDB] Error inserting journal: {e}")
+
+    async def log_decision_trace(self, trace: dict):
+        if getattr(self, "traces_col", None) is not None:
+            trace["timestamp"] = datetime.utcnow().isoformat()
+            try:
+                await self.traces_col.insert_one(trace)
+            except Exception as e:
+                pass
+
+    async def log_market_data(self, data: dict):
+        if getattr(self, "market_data_col", None) is not None:
+            data["timestamp"] = datetime.utcnow().isoformat()
+            try:
+                await self.market_data_col.insert_one(data)
+            except Exception as e:
+                pass
+
+    async def bg_log_market_data(self):
+        while True:
+            await asyncio.sleep(60) # Log every minute
+            if getattr(self, "market_data_col", None) is not None and self.data_store.latest_prices:
+                snapshot = {
+                    "type": "spread_snapshot",
+                    "prices": self.data_store.latest_prices.copy()
+                }
+                await self.log_market_data(snapshot)
 
     async def start(self):
         await self.init_mongo()
@@ -129,6 +160,7 @@ class BotRunner:
             
         tasks.append(asyncio.create_task(self.bybit_adapter.watch_orders_loop()))
         tasks.append(asyncio.create_task(self.analysis_loop()))
+        tasks.append(asyncio.create_task(self.bg_log_market_data()))
         
         logger.info("Rave Godmode v1 components started. Gate engine Armed.")
         logger.info("Forward testing required: 20 clean testnet signals prior to live allocation.")

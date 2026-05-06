@@ -44,6 +44,8 @@ import { CmeMonitorComponent } from "./cme-monitor.component";
 import { TradingOpsCenterComponent } from "./trading-ops-center.component";
 import { HomeDashboardComponent } from "./home-dashboard.component";
 
+import { CommandDashboardComponent } from "./command-dashboard.component";
+
 export interface OrderHistoryEntry {
   id: string;
   type: "BUY" | "SELL";
@@ -100,6 +102,7 @@ export interface OpenOrder {
     CmeMonitorComponent,
     TradingOpsCenterComponent,
     HomeDashboardComponent,
+    CommandDashboardComponent,
   ],
   templateUrl: "./app.html",
   styleUrl: "./app.css",

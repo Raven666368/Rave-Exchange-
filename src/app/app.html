@@ -17,6 +17,16 @@
           Testnet Environment
         </p>
       </div>
+      
+      <!-- Desktop Navigation -->
+      <div class="hidden lg:flex items-center gap-2 ml-6">
+        <button (click)="setAppTab('Trade')" [class.bg-white]="activeAppTab() === 'Trade'" [class.bg-opacity-10]="activeAppTab() === 'Trade'" [class.text-white]="activeAppTab() === 'Trade'" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors">Trade</button>
+        <button (click)="setAppTab('Ops')" [class.bg-white]="activeAppTab() === 'Ops'" [class.bg-opacity-10]="activeAppTab() === 'Ops'" [class.text-white]="activeAppTab() === 'Ops'" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors">Ops</button>
+        <button (click)="setAppTab('Command')" [class.bg-red-500]="activeAppTab() === 'Command'" [class.bg-opacity-10]="activeAppTab() === 'Command'" [class.text-red-500]="activeAppTab() === 'Command'" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-red-500 transition-colors flex items-center gap-2">
+          <mat-icon style="font-size: 14px; width: 14px; height: 14px;">radar</mat-icon>
+          Command
+        </button>
+      </div>
     </div>
 
     <!-- Live Price Section -->
@@ -1210,6 +1220,10 @@
     <div class="lg:h-[calc(100vh-120px)] animate-in fade-in duration-300">
       <app-trading-ops-center></app-trading-ops-center>
     </div>
+  } @else if (activeAppTab() === 'Command') {
+    <div class="lg:h-[calc(100vh-120px)] h-[calc(100vh-200px)] animate-in fade-in duration-300">
+      <app-command-dashboard></app-command-dashboard>
+    </div>
   } @else if (activeAppTab() === 'Home') {
     <div class="lg:h-[calc(100vh-120px)] animate-in fade-in duration-300">
       <app-home-dashboard></app-home-dashboard>
@@ -1411,6 +1425,11 @@
         <button (click)="setAppTab('Ops')" [class.text-[#089981]]="activeAppTab() === 'Ops'" class="flex flex-col items-center justify-center w-[50px] text-gray-400 hover:text-white transition-colors">
           <mat-icon style="font-size: 20px; width: 20px; height: 20px;">rule</mat-icon>
           <span class="text-[9px] mt-0.5 tracking-wider font-semibold uppercase">Ops</span>
+        </button>
+        
+        <button (click)="setAppTab('Command')" [class.text-red-500]="activeAppTab() === 'Command'" class="flex flex-col items-center justify-center w-[50px] text-gray-400 hover:text-white transition-colors">
+          <mat-icon style="font-size: 20px; width: 20px; height: 20px;">radar</mat-icon>
+          <span class="text-[9px] mt-0.5 tracking-wider font-semibold uppercase">Cmd</span>
         </button>
         
         <button (click)="setAppTab('Spot')" [class.text-[#089981]]="activeAppTab() === 'Spot'" class="flex flex-col items-center justify-center w-[50px] text-gray-400 hover:text-white transition-colors">
