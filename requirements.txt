@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic
+websockets
+ccxt
+aiohttp
+pandas
+numpy
+scikit-learn
+pybit
+motor

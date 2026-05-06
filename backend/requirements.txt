@@ -1,0 +1,10 @@
+ccxt==4.2.98
+pandas==2.2.0
+numpy==1.26.4
+aiohttp==3.9.3
+httpx==0.27.0
+certifi
+motor
+fastapi
+uvicorn
+pydantic

@@ -1,0 +1,1465 @@
+<div class="min-h-screen bg-canvas text-dim font-sans p-4 md:p-6 pb-40">
+  <!-- Header -->
+  <header
+    class="flex flex-col md:flex-row justify-between items-center bg-surface p-5 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.3)] mb-6 border border-line"
+  >
+    <div class="flex items-center gap-4 mb-4 md:mb-0">
+      <div
+        class="w-10 h-10 bg-buy rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(8,153,129,0.3)]"
+      >
+        <span class="text-white font-black text-xl">R</span>
+      </div>
+      <div>
+        <h1 class="text-2xl font-black text-white tracking-widest uppercase">
+          Rave<span class="text-buy">Exchange</span>
+        </h1>
+        <p class="text-xs text-buy uppercase tracking-widest font-mono">
+          Testnet Environment
+        </p>
+      </div>
+    </div>
+
+    <!-- Live Price Section -->
+    <div
+      class="flex items-center gap-8 px-8 border-x border-[#363c4e]/50 hidden lg:flex"
+    >
+      <div class="flex flex-col items-start min-w-[140px]">
+        <span class="text-[10px] text-gray-500 uppercase tracking-widest mb-1"
+          >Spot Index</span
+        >
+        <div
+          class="text-2xl font-black font-mono tracking-tighter transition-colors duration-300"
+          [class.text-[#089981]]="priceChange() === 'up'"
+          [class.text-[#f23645]]="priceChange() === 'down'"
+          [class.text-white]="priceChange() === 'neutral'"
+        >
+          {{ currentPrice() ? (currentPrice() | number:'1.2-2') : '65,432.10' }}
+          <span class="text-[10px] ml-1 uppercase opacity-50">USDT</span>
+        </div>
+      </div>
+      <div class="flex flex-col items-start border-l border-[#363c4e] pl-8">
+        <span class="text-[10px] text-gray-400 uppercase tracking-widest mb-1"
+          >24h Change</span
+        >
+        <div class="text-sm font-bold text-[#089981] font-mono tracking-wide">
+          +4.28%
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="text-center md:text-right flex flex-col md:items-end w-full md:w-auto"
+    >
+      <app-kill-switch></app-kill-switch>
+      <div
+        class="text-xs text-gray-400 font-mono flex items-center gap-2 justify-center md:justify-end mb-1 mt-2"
+      >
+        <span class="w-2 h-2 bg-[#089981] rounded-full animate-pulse"></span>
+        Bot Engine:
+        <span class="text-[#089981] font-bold mr-2">{{ botStatus() }}</span>
+        <button
+          (click)="showSettingsModal.set(true)"
+          aria-label="Settings"
+          class="text-gray-400 hover:text-white transition flex items-center justify-center bg-[#131722] border border-[#363c4e] p-1.5 rounded-lg"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+        </button>
+      </div>
+      <div class="text-2xl font-mono font-bold text-white tracking-tight mt-1">
+        Available:
+        <span class="text-[#089981]"
+          >${{ (testnetBalance() || 0) | number:'1.2-2' }}</span
+        >
+      </div>
+      <div class="flex gap-2 mt-2 w-full justify-center md:justify-end">
+        <button (click)="quickBuy()" class="bg-[#089981] hover:bg-[#00dd77] text-white font-black uppercase text-xs py-1.5 px-4 rounded shadow">
+          Quick Mkt Buy
+        </button>
+        <button (click)="quickSell()" class="bg-[#f23645] hover:bg-[#dd1133] text-white font-black uppercase text-xs py-1.5 px-4 rounded shadow">
+          Quick Mkt Sell
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Missing Auth Banner -->
+  @if (privateAuthError()) {
+    <div class="bg-red-900/40 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg flex items-center gap-3 mb-6 relative shadow-[0_0_15px_rgba(242,54,69,0.2)]">
+      <mat-icon class="text-red-400">warning</mat-icon>
+      <div>
+        <h3 class="text-sm font-bold tracking-widest uppercase">Private Auth Unavailable</h3>
+        <p class="text-xs opacity-80 font-mono mt-0.5">Simulated/Read-Only Mode Active. Error: {{ privateAuthError() }}</p>
+      </div>
+      <button (click)="privateAuthError.set(null)" class="absolute right-3 top-3 opacity-50 hover:opacity-100 transition">
+         <mat-icon style="font-size: 16px; width: 16px; height: 16px;">close</mat-icon>
+      </button>
+    </div>
+  }
+
+  @if (activeAppTab() === 'Trade') {
+  <div
+    class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start lg:h-[calc(100vh-120px)]"
+  >
+    <!-- Left Column: Pairs & Order Book -->
+    <div class="lg:col-span-3 h-full flex flex-col gap-6">
+      <!-- Symbol List -->
+      <div
+        class="bg-[#1e222d] rounded-xl border border-[#363c4e] shadow-lg flex flex-col h-[30%] min-h-[200px]"
+      >
+        <div
+          class="p-3 border-b border-[#363c4e] flex flex-col gap-3 sticky top-0 bg-[#1e222d] z-10 shrink-0"
+        >
+          <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest">
+            Markets
+          </h2>
+          <div class="relative">
+            <span
+              class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+            >
+              <svg
+                class="w-4 h-4 text-gray-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </span>
+            <input
+              type="text"
+              [value]="searchQuery()"
+              (input)="onSearchInput($event)"
+              placeholder="Search pairs..."
+              class="w-full bg-[#131722] text-gray-300 text-xs rounded border border-[#363c4e] pl-9 pr-3 py-2 font-mono focus:outline-none focus:border-[#089981]"
+            />
+          </div>
+        </div>
+        <div class="flex-1 overflow-y-auto custom-scrollbar">
+          <ul class="divide-y divide-[#363c4e]">
+            @for (symbol of filteredSymbols(); track symbol) {
+            <li>
+              <button
+                (click)="updateSymbol(symbol)"
+                class="w-full text-left px-4 py-3 hover:bg-white/5 transition flex items-center justify-between"
+                [class.bg-[#363c4e]]="currentSymbol() === symbol"
+              >
+                <span
+                  class="font-mono text-xs font-bold"
+                  [class.text-white]="currentSymbol() === symbol"
+                  [class.text-gray-400]="currentSymbol() !== symbol"
+                  >{{ symbol }}</span
+                >
+                @if (currentSymbol() === symbol) {
+                <span
+                  class="w-2 h-2 rounded-full bg-[#089981] animate-pulse"
+                ></span>
+                }
+              </button>
+            </li>
+            }
+          </ul>
+        </div>
+      </div>
+
+      <!-- Symbol Details -->
+      <div
+        class="bg-[#1e222d] rounded-xl border border-[#363c4e] shadow-lg p-3 shrink-0"
+      >
+        <div class="grid grid-cols-2 gap-y-3 gap-x-2 text-xs font-mono">
+          <div class="flex flex-col">
+            <span class="text-gray-500 uppercase tracking-widest text-[9px]">24h High</span>
+            <span class="text-gray-300 font-bold whitespace-nowrap overflow-hidden text-ellipsis">{{ highPrice24h() !== null ? (highPrice24h()! | number:'1.2-2') : '---' }}</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-gray-500 uppercase tracking-widest text-[9px]">24h Low</span>
+            <span class="text-gray-300 font-bold whitespace-nowrap overflow-hidden text-ellipsis">{{ lowPrice24h() !== null ? (lowPrice24h()! | number:'1.2-2') : '---' }}</span>
+          </div>
+          <div class="flex flex-col pt-1 border-t border-[#363c4e]">
+            <span class="text-gray-500 uppercase tracking-widest text-[9px]">24h Volume</span>
+            <span class="text-gray-300 font-bold whitespace-nowrap overflow-hidden text-ellipsis">{{ currentVolume24h() !== null ? (currentVolume24h()! | number:'1.2-2') : '---' }}</span>
+          </div>
+          <div class="flex flex-col pt-1 border-t border-[#363c4e]">
+            <span class="text-gray-500 uppercase tracking-widest text-[9px]">24h Turnover</span>
+            <span class="text-gray-300 font-bold whitespace-nowrap overflow-hidden text-ellipsis">{{ currentTurnover24h() !== null ? (currentTurnover24h()! | number:'1.2-2') : '---' }}</span>
+          </div>
+          <div class="flex flex-col pt-1 border-t border-[#363c4e]">
+            <span class="text-gray-500 uppercase tracking-widest text-[9px]">24h Change</span>
+            <span class="font-bold flex items-center gap-1"
+                  [class.text-[#089981]]="(currentPrice24hPcnt() !== null) && currentPrice24hPcnt()! > 0"
+                  [class.text-[#f23645]]="(currentPrice24hPcnt() !== null) && currentPrice24hPcnt()! < 0"
+                  [class.text-gray-300]="(currentPrice24hPcnt() === null) || currentPrice24hPcnt() === 0">
+              @if (currentPrice24hPcnt() !== null) {
+                @if (currentPrice24hPcnt()! > 0) {
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+                } @else if (currentPrice24hPcnt()! < 0) {
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                }
+                {{ ((currentPrice24hPcnt()! < 0 ? -currentPrice24hPcnt()! : currentPrice24hPcnt()!) * 100) | number:'1.2-2' }}%
+              } @else {
+                ---
+              }
+            </span>
+          </div>
+          <div class="flex flex-col pt-1 border-t border-[#363c4e]">
+            <span class="text-gray-500 uppercase tracking-widest text-[9px]">Fund. Rate</span>
+            <span class="text-[#e2b714] font-bold whitespace-nowrap overflow-hidden text-ellipsis">{{ fundingRate() !== null ? ((fundingRate()! * 100) | number:'1.4-4') + '%' : '---' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Book -->
+      <div
+        class="flex-1 overflow-hidden bg-[#1e222d] rounded-xl border border-[#363c4e] shadow-lg min-h-[300px]"
+      >
+        <app-order-book
+          (tradeRequested)="handleTradeRequested($event)"
+          [symbol]="currentSymbol()"
+          class="flex-1 flex flex-col h-full w-full"
+        ></app-order-book>
+      </div>
+    </div>
+
+    <!-- Middle Column: Chart, Logs & Trade Details -->
+    <div
+      class="lg:col-span-6 space-y-6 flex flex-col lg:h-full overflow-y-auto custom-scrollbar"
+    >
+      <!-- Chart Component -->
+      <div class="h-[400px] shrink-0">
+        <app-chart [symbol]="currentSymbol()"></app-chart>
+      </div>
+
+      <!-- Terminal Logs -->
+      <div
+        class="bg-[#131722] rounded-xl p-5 h-64 overflow-y-auto border border-[#363c4e] shadow-lg relative font-mono text-xs"
+      >
+        <div
+          class="sticky top-0 bg-[#131722] pb-2 border-b border-[#363c4e] mb-3 flex items-center justify-between z-10"
+        >
+          <h2
+            class="font-bold text-gray-400 uppercase tracking-widest text-[10px]"
+          >
+            L99 OODA execution logs
+          </h2>
+          <span class="text-[#089981] text-[10px] animate-pulse">LIVE</span>
+        </div>
+        <div class="terminal-feed space-y-2">
+          @for (log of terminalLogs(); track log) {
+          <p
+            [class]="{
+              'text-[#089981]': log.type === 'success',
+              'text-yellow-500': log.type === 'warn',
+              'text-blue-500': log.type === 'info'
+            }"
+            class="opacity-90"
+          >
+            <span class="text-gray-600">[{{ log.time }}]</span> > {{ log.msg }}
+          </p>
+          }
+          <p class="animate-pulse">
+            <span class="text-gray-600">[{{ currentTime() }}]</span> > Waiting
+            for 9-gate alignment...
+          </p>
+        </div>
+      </div>
+
+      <!-- Order History -->
+      <div
+        class="bg-[#1e222d] rounded-xl p-5 border border-[#363c4e] shadow-lg flex-1 overflow-hidden flex flex-col h-[300px]"
+      >
+        <div
+          class="flex items-center justify-between mb-4 pb-2 border-b border-[#363c4e]"
+        >
+          <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest">
+            Order History
+          </h2>
+          <div class="flex items-center gap-4">
+            <span class="text-[10px] text-gray-500 font-mono"
+              >LATEST EXECUTION</span
+            >
+            <button
+              (click)="isReplayModalOpen.set(true)"
+              class="text-[9px] bg-purple-500/10 text-purple-500 px-2 py-1 rounded tracking-widest uppercase hover:bg-purple-500/20 transition-colors border border-purple-500/30"
+            >
+              Replay Stream
+            </button>
+            <button
+              (click)="togglePostMortem()"
+              class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded tracking-widest uppercase hover:bg-yellow-500/20 transition-colors border border-yellow-500/30"
+            >
+              Post-Mortem
+            </button>
+            <button
+               (click)="showJournalModal.set(true)"
+               class="text-[10px] bg-blue-600 text-white font-black px-4 py-1.5 rounded uppercase tracking-widest hover:bg-blue-500 hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all border border-blue-400/50 flex items-center justify-center shadow-lg transform hover:-translate-y-0.5"
+             >
+               <div class="w-1.5 h-1.5 rounded-full bg-white animate-pulse mr-2"></div>
+               Live Journal
+            </button>
+            <button
+              (click)="showFullHistoryModal.set(true)"
+              class="text-[9px] bg-[#089981]/10 text-[#089981] px-2 py-1 rounded tracking-widest uppercase hover:bg-[#089981]/20 transition-colors border border-[#089981]/30"
+            >
+              Full History
+            </button>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto custom-scrollbar">
+          @if (orderHistory().length === 0) {
+          <div
+            class="flex flex-col items-center justify-center h-full text-gray-600 opacity-50 space-y-2"
+          >
+            <svg
+              class="w-8 h-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <p class="text-[10px] uppercase tracking-widest">No history</p>
+          </div>
+          } @else {
+          <table class="w-full text-left font-mono text-[10px]">
+            <thead
+              class="text-gray-500 sticky top-0 bg-[#1e222d] mb-2 uppercase"
+            >
+              <tr>
+                <th class="py-2">Time</th>
+                <th class="py-2">Symbol</th>
+                <th class="py-2 text-center">Type</th>
+                <th class="py-2 text-right">Price</th>
+                <th class="py-2 text-right">Size</th>
+                <th class="py-2 text-right">Status</th>
+                <th class="py-2 text-right">ID</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#363c4e]">
+              @for (entry of orderHistory(); track entry.id) {
+              <tr
+                class="hover:bg-white/5 transition-colors cursor-pointer animate-fade-in"
+                (click)="viewOrderDetails(entry)"
+              >
+                <td class="py-2 text-gray-400">
+                  {{ entry.timestamp | date:'HH:mm:ss' }}
+                </td>
+                <td class="py-2 text-gray-300">{{ entry.symbol }}</td>
+                <td class="py-2 text-center">
+                  <span
+                    [class]="entry.type === 'BUY' ? 'text-[#089981] font-bold' : 'text-[#f23645] font-bold'"
+                  >
+                    {{ entry.type }}
+                  </span>
+                </td>
+                <td class="py-2 text-right text-gray-200">
+                  {{ (entry.price || 0) | number:'1.2-2' }}
+                </td>
+                <td class="py-2 text-right text-gray-200">
+                  {{ (entry.size || 0) | number:'1.2-4' }}
+                </td>
+                <td class="py-2 text-right">
+                  <span
+                    [class]="entry.status === 'FILLED' ? 'text-[#089981]' : (entry.status === 'CANCELLED' ? 'text-gray-500' : 'text-yellow-500')"
+                  >
+                    {{ entry.status || 'PENDING' }}
+                  </span>
+                </td>
+                <td class="py-2 text-right text-gray-600">{{ entry.id }}</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+          }
+        </div>
+      </div>
+
+      <!-- Open Orders -->
+      <div
+        class="bg-[#1e222d] rounded-xl p-5 border border-[#363c4e] shadow-lg h-[250px] overflow-hidden flex flex-col"
+      >
+        <div
+          class="flex items-center justify-between mb-4 pb-2 border-b border-[#363c4e]"
+        >
+          <div class="flex items-center gap-2">
+            <h2
+              class="text-xs font-bold text-gray-400 uppercase tracking-widest"
+            >
+              Open Orders
+            </h2>
+            <span
+              class="bg-[#363c4e] text-[#089981] text-[8px] px-1.5 py-0.5 rounded-full font-mono"
+              >{{ openOrders().length }}</span
+            >
+          </div>
+          <span class="text-[10px] text-gray-500 font-mono"
+            >WAITING FOR TRIGGER</span
+          >
+        </div>
+
+        <div class="flex-1 overflow-y-auto custom-scrollbar">
+          @if (openOrders().length === 0) {
+          <div
+            class="flex flex-col items-center justify-center h-full text-gray-600 opacity-50 space-y-2"
+          >
+            <svg
+              class="w-8 h-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <p class="text-[10px] uppercase tracking-widest text-center">
+              No limit orders pending
+            </p>
+          </div>
+          } @else {
+          <table class="w-full text-left font-mono text-[10px]">
+            <thead
+              class="text-gray-500 sticky top-0 bg-[#1e222d] mb-2 uppercase"
+            >
+              <tr>
+                <th class="py-2">Time</th>
+                <th class="py-2">Symbol</th>
+                <th class="py-2 text-center">Type</th>
+                <th class="py-2 text-right">Price</th>
+                <th class="py-2 text-right">Size</th>
+                <th class="py-2 text-right">TP/SL</th>
+                <th class="py-2 text-right">Status</th>
+                <th class="py-2 text-right">ID</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#363c4e]">
+              @for (order of openOrders(); track order.id) {
+              <tr
+                class="hover:bg-white/5 transition-colors cursor-pointer"
+                (click)="viewOrderDetails(order)"
+              >
+                <td class="py-2 text-gray-400">
+                  {{ order.timestamp | date:'HH:mm:ss' }}
+                </td>
+                <td class="py-2 text-gray-300">{{ order.symbol }}</td>
+                <td class="py-2 text-center">
+                  <span
+                    [class]="order.type === 'BUY' ? 'text-[#089981] font-bold' : 'text-[#f23645] font-bold'"
+                  >
+                    {{ order.type }}
+                  </span>
+                </td>
+                <td class="py-2 text-right text-gray-200">
+                  @if (order.stopPrice) {
+                  <span class="text-yellow-500"
+                    >Trig: {{ order.stopPrice | number:'1.2-2' }}</span
+                  ><br />
+                  } {{ (order.price || 0) | number:'1.2-2' }}
+                </td>
+                <td class="py-2 text-right text-gray-200">
+                  {{ (order.size || 0) | number:'1.2-4' }}
+                </td>
+                <td class="py-2 text-right text-[10px]">
+                  @if (order.takeProfit || order.stopLoss) {
+                  <div class="flex flex-col">
+                    @if (order.takeProfit) {
+                    <span class="text-[#089981]"
+                      >TP: {{ order.takeProfit | number:'1.2-2' }}</span
+                    >
+                    } @if (order.stopLoss) {
+                    <span class="text-[#f23645]"
+                      >SL: {{ order.stopLoss | number:'1.2-2' }}</span
+                    >
+                    }
+                  </div>
+                  } @else {
+                  <span class="text-gray-600">-</span>
+                  }
+                </td>
+                <td class="py-2 text-right">
+                  <span class="text-yellow-500"
+                    >{{ order.status || 'PENDING' }}</span
+                  >
+                </td>
+                <td class="py-2 text-right text-gray-600">{{ order.id }}</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+          }
+        </div>
+      </div>
+      <app-executed-trades
+        [history]="orderHistory()"
+        [symbolPrices]="symbolPrices()"
+      ></app-executed-trades>
+      <app-execution-logs [logs]="tradeExecutionLogs()"></app-execution-logs>
+    </div>
+
+    <!-- Right Column: Execution -->
+    <div
+      class="lg:col-span-3 space-y-6 flex flex-col lg:h-full overflow-y-auto custom-scrollbar"
+    >
+      <app-alchemy-status [tpLevels]="tpLevels()"></app-alchemy-status>
+      <app-journal-prompt></app-journal-prompt>
+      <app-gate-matrix
+        #gateMatrix
+        (tradeRequest)="handleExecuteTrade()"
+      ></app-gate-matrix>
+      <app-cme-monitor></app-cme-monitor>
+      <app-pnl-display
+        [positions]="openPositions()"
+        [symbolPrices]="symbolPrices()"
+      ></app-pnl-display>
+      <app-funding-rate [symbol]="currentSymbol()"></app-funding-rate>
+      <!-- Manual Override -->
+      <div
+        class="bg-[#1e222d] rounded-xl p-5 border border-[#363c4e] shadow-lg"
+      >
+        <h2
+          class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 pb-2 border-b border-[#363c4e]"
+        >
+          Manual Override Terminal
+        </h2>
+
+        <div class="grid grid-cols-2 gap-4 mb-4 text-[10px] font-mono">
+          <div class="bg-[#131722] p-3 rounded-lg border border-[#363c4e]">
+            <p class="text-gray-500 uppercase tracking-widest">
+              Available Balance
+            </p>
+            <p class="text-white text-lg font-bold">
+              ${{ (testnetBalance() || 0) | number:'1.2-2' }}
+            </p>
+          </div>
+          <div class="bg-[#131722] p-3 rounded-lg border border-[#363c4e]">
+            <p class="text-gray-500 uppercase tracking-widest">Liq. Price</p>
+            <p
+              [class]="liquidationPrice() > 0 ? 'text-[#f23645]' : 'text-gray-500'"
+              class="text-lg font-bold"
+            >
+              ${{ (liquidationPrice() || 0) | number:'1.2-2' }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Futures Trading Settings -->
+        <div class="space-y-4 mb-4">
+          <!-- Trading Pair Selector -->
+          <div class="mb-4">
+            <label
+              for="pair-selector"
+              class="text-[10px] text-gray-500 uppercase tracking-widest block mb-1"
+              >Trading Pair</label
+            >
+            <select
+              id="pair-selector"
+              (change)="updateSymbol($any($event.target).value)"
+              class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-2 py-2 text-white font-mono text-xs focus:border-[#089981] outline-none"
+            >
+              @for (symbol of availableSymbols(); track symbol) {
+              <option [value]="symbol" [selected]="currentSymbol() === symbol">
+                {{ symbol }}
+              </option>
+              }
+            </select>
+          </div>
+          <div class="flex gap-4">
+            <div class="flex-1">
+              <label
+                for="margin-mode"
+                class="text-[10px] text-gray-500 uppercase tracking-widest block mb-1"
+                >Margin Mode</label
+              >
+              <select
+                id="margin-mode"
+                [ngModel]="marginMode()"
+                (ngModelChange)="marginMode.set($event)"
+                class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-2 py-2 text-white font-mono text-xs focus:border-[#089981] outline-none"
+              >
+                <option value="cross">Cross</option>
+                <option value="isolated">Isolated</option>
+              </select>
+            </div>
+            <div class="flex-[2]">
+              <label
+                for="leverage-slider"
+                class="text-[10px] text-gray-500 uppercase tracking-widest block mb-1"
+              >
+                Leverage
+                <span class="text-white font-bold ml-1">{{ leverage() }}x</span>
+              </label>
+              <input
+                id="leverage-slider"
+                type="range"
+                min="1"
+                max="100"
+                [ngModel]="leverage()"
+                (ngModelChange)="onLeverageChange($event)"
+                class="w-full accent-[#089981] mt-1"
+              />
+              @if (leverageError()) {
+              <p class="text-[9px] text-[#f23645] font-mono mt-1">
+                {{ leverageError() }}
+              </p>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2 mb-4">
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest block">
+            Execution Mode
+          </p>
+          <div class="grid grid-cols-3 gap-2">
+            <label
+              class="relative flex items-center justify-center p-2 rounded-lg border border-[#363c4e] bg-[#131722] cursor-pointer transition hover:border-gray-700"
+              [class.border-blue-500]="orderMode() === 'limit'"
+              [class.bg-blue-500/5]="orderMode() === 'limit'"
+            >
+              <input
+                type="radio"
+                name="orderType"
+                class="sr-only"
+                (change)="setOrderMode('limit')"
+                [checked]="orderMode() === 'limit'"
+              />
+              <div class="flex items-center space-x-1 sm:space-x-2">
+                <div
+                  class="w-3 h-3 rounded-full border border-gray-600 flex items-center justify-center"
+                  [class.border-blue-500]="orderMode() === 'limit'"
+                >
+                  @if (orderMode() === 'limit') {
+                  <div
+                    class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"
+                  ></div>
+                  }
+                </div>
+                <span
+                  class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider"
+                  [class.text-white]="orderMode() === 'limit'"
+                  [class.text-gray-500]="orderMode() !== 'limit'"
+                  >Limit</span
+                >
+              </div>
+            </label>
+            <label
+              class="relative flex items-center justify-center p-2 rounded-lg border border-[#363c4e] bg-[#131722] cursor-pointer transition hover:border-gray-700"
+              [class.border-[#089981]]="orderMode() === 'market'"
+              [class.bg-[#089981]/5]="orderMode() === 'market'"
+            >
+              <input
+                type="radio"
+                name="orderType"
+                class="sr-only"
+                (change)="setOrderMode('market')"
+                [checked]="orderMode() === 'market'"
+              />
+              <div class="flex items-center space-x-1 sm:space-x-2">
+                <div
+                  class="w-3 h-3 rounded-full border border-gray-600 flex items-center justify-center"
+                  [class.border-[#089981]]="orderMode() === 'market'"
+                >
+                  @if (orderMode() === 'market') {
+                  <div
+                    class="w-1.5 h-1.5 rounded-full bg-[#089981] animate-pulse"
+                  ></div>
+                  }
+                </div>
+                <span
+                  class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider"
+                  [class.text-white]="orderMode() === 'market'"
+                  [class.text-gray-500]="orderMode() !== 'market'"
+                  >Market</span
+                >
+              </div>
+            </label>
+            <label
+              class="relative flex items-center justify-center p-2 rounded-lg border border-[#363c4e] bg-[#131722] cursor-pointer transition hover:border-gray-700"
+              [class.border-yellow-500]="orderMode() === 'stop-limit'"
+              [class.bg-yellow-500/5]="orderMode() === 'stop-limit'"
+            >
+              <input
+                type="radio"
+                name="orderType"
+                class="sr-only"
+                (change)="setOrderMode('stop-limit')"
+                [checked]="orderMode() === 'stop-limit'"
+              />
+              <div class="flex items-center space-x-1 sm:space-x-2">
+                <div
+                  class="w-3 h-3 rounded-full border border-gray-600 flex items-center justify-center"
+                  [class.border-yellow-500]="orderMode() === 'stop-limit'"
+                >
+                  @if (orderMode() === 'stop-limit') {
+                  <div
+                    class="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"
+                  ></div>
+                  }
+                </div>
+                <span
+                  class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider"
+                  [class.text-white]="orderMode() === 'stop-limit'"
+                  [class.text-gray-500]="orderMode() !== 'stop-limit'"
+                  >Stop</span
+                >
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="space-y-4 mb-6">
+          @switch (orderMode()) { @case ('market') {
+          <div
+            class="bg-[#131722] border border-[#363c4e] rounded-lg px-4 py-3 opacity-60"
+          >
+            <p
+              class="text-[10px] text-gray-500 uppercase tracking-widest mb-1 block"
+            >
+              Market Execution
+            </p>
+            <div class="text-white font-mono text-sm">Best Available Price</div>
+          </div>
+          } @case ('limit') {
+          <div>
+            <label
+              for="limit-price"
+              class="text-[10px] text-gray-500 uppercase tracking-widest mb-1 block"
+              >Limit Price (USDT)</label
+            >
+            <input
+              id="limit-price"
+              type="number"
+              [ngModel]="orderPriceInput()"
+              (ngModelChange)="orderPriceInput.set($event)"
+              class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-4 py-3 text-white font-mono text-sm focus:border-[#089981] focus:outline-none transition"
+            />
+            @if (orderPriceError()) {
+            <p class="text-[9px] text-[#f23645] font-mono mt-1">
+              {{ orderPriceError() }}
+            </p>
+            }
+          </div>
+          } @case ('stop-limit') {
+          <div class="space-y-4">
+            <div>
+              <label
+                for="stop-price"
+                class="text-[10px] text-gray-500 uppercase tracking-widest mb-1 block"
+                >Trigger/Stop Price (USDT)</label
+              >
+              <input
+                id="stop-price"
+                type="number"
+                [ngModel]="stopPriceInput()"
+                (ngModelChange)="stopPriceInput.set($event)"
+                class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-4 py-3 text-white font-mono text-sm focus:border-yellow-500 focus:outline-none transition"
+              />
+            </div>
+            <div>
+              <label
+                for="limit-price"
+                class="text-[10px] text-gray-500 uppercase tracking-widest mb-1 block"
+                >Limit Price (USDT)</label
+              >
+              <input
+                id="limit-price"
+                type="number"
+                [ngModel]="orderPriceInput()"
+                (ngModelChange)="orderPriceInput.set($event)"
+                class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-4 py-3 text-white font-mono text-sm focus:border-[#089981] focus:outline-none transition"
+              />
+              @if (orderPriceError()) {
+              <p class="text-[9px] text-[#f23645] font-mono mt-1">
+                {{ orderPriceError() }}
+              </p>
+              }
+            </div>
+          </div>
+          } }
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label
+                for="btc-size"
+                class="text-[10px] text-gray-500 uppercase tracking-widest mb-1 block"
+                >Size (BTC)</label
+              >
+              <input
+                id="btc-size"
+                type="number"
+                [ngModel]="orderSizeInput()"
+                (ngModelChange)="orderSizeInput.set($event)"
+                class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-4 py-3 text-white font-mono text-sm focus:border-[#089981] focus:outline-none transition"
+              />
+              @if (orderSizeError()) {
+              <p class="text-[9px] text-[#f23645] font-mono mt-1">
+                {{ orderSizeError() }}
+              </p>
+              }
+            </div>
+            <div>
+              <label
+                for="order-stop-loss"
+                class="text-[10px] text-[#f23645] uppercase tracking-widest mb-1 block"
+                >Stop Loss (USDT)</label
+              >
+              <input
+                id="order-stop-loss"
+                type="number"
+                [ngModel]="orderStopLossInput()"
+                (ngModelChange)="orderStopLossInput.set($event)"
+                placeholder="Price..."
+                class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-4 py-3 text-white font-mono text-sm focus:border-[#f23645] focus:outline-none transition"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <label
+                for="order-take-profit"
+                class="text-[10px] text-[#089981] uppercase tracking-widest block font-bold"
+              >
+                {{ tpLevels().length > 0 ? 'TP Levels Layered' : 'Take Profit (USDT)' }}
+              </label>
+              <div class="flex gap-2">
+                  <button 
+                    (click)="addTpLevel()"
+                    class="text-[8px] bg-[#089981]/10 text-[#089981] border border-[#089981]/30 px-2 py-0.5 rounded hover:bg-[#089981]/20 transition uppercase font-bold"
+                  >
+                    + Scale Out
+                  </button>
+              </div>
+            </div>
+
+            @if (tpLevels().length > 0) {
+              <div class="space-y-2 mb-3 bg-[#131722]/50 p-2 rounded-lg border border-[#363c4e]/50">
+                @for (level of tpLevels(); track $index) {
+                  <div class="flex gap-2 items-center animate-in slide-in-from-right-1 duration-200">
+                    <div class="flex-1 relative">
+                      <input
+                        type="number"
+                        [(ngModel)]="level.price"
+                        class="w-full bg-[#131722] border border-[#363c4e] rounded px-3 py-2 text-white font-mono text-xs focus:border-[#089981] outline-none"
+                        placeholder="Price"
+                      />
+                    </div>
+                    <div class="w-16 relative">
+                      <input
+                        type="number"
+                        [(ngModel)]="level.percent"
+                        class="w-full bg-[#131722] border border-[#363c4e] rounded px-2 py-2 text-white font-mono text-xs focus:border-[#089981] outline-none"
+                        placeholder="%"
+                      />
+                      <span class="absolute right-1 top-2 text-[8px] text-gray-500">%</span>
+                    </div>
+                    <button 
+                      (click)="removeTpLevel($index)"
+                      class="text-gray-500 hover:text-red-500 transition-colors px-1"
+                    >
+                      ×
+                    </button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <input
+                id="order-take-profit"
+                type="number"
+                [ngModel]="orderTakeProfitInput()"
+                (ngModelChange)="orderTakeProfitInput.set($event)"
+                placeholder="Price..."
+                class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-4 py-3 text-white font-mono text-sm focus:border-[#089981] focus:outline-none transition"
+              />
+            }
+          </div>
+          
+          <div class="space-y-4">
+            <div class="flex items-center justify-between pt-2">
+              <span
+                class="text-[10px] text-gray-500 uppercase tracking-widest font-bold"
+                >Preset Calculation Basis:</span
+              >
+              <div
+                class="flex bg-[#131722] rounded overflow-hidden border border-[#363c4e]"
+              >
+                <button
+                  (click)="presetSide.set('LONG')"
+                  [class.bg-[#089981]]="presetSide() === 'LONG'"
+                  [class.text-white]="presetSide() === 'LONG'"
+                  class="px-4 py-1 text-[10px] font-bold text-gray-500 uppercase transition-colors"
+                >
+                  Long
+                </button>
+                <button
+                  (click)="presetSide.set('SHORT')"
+                  [class.bg-[#f23645]]="presetSide() === 'SHORT'"
+                  [class.text-white]="presetSide() === 'SHORT'"
+                  class="px-4 py-1 text-[10px] font-bold text-gray-500 uppercase transition-colors"
+                >
+                  Short
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+              <div class="col-span-2 text-[9px] text-gray-500 uppercase tracking-widest font-mono flex items-center gap-2">
+                <span class="h-px bg-[#363c4e] flex-1"></span>
+                Quick % Presets
+                <span class="h-px bg-[#363c4e] flex-1"></span>
+              </div>
+              <div class="space-y-2">
+                 <p class="text-[8px] text-[#089981] uppercase font-bold text-center">TP</p>
+                 <div class="grid grid-cols-3 gap-1">
+                    <button (click)="applyPreset('TP', presetSide(), 1)" class="text-[9px] py-1.5 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white">1%</button>
+                    <button (click)="applyPreset('TP', presetSide(), 5)" class="text-[9px] py-1.5 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white">5%</button>
+                    <button (click)="applyPreset('TP', presetSide(), 10)" class="text-[9px] py-1.5 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white">10%</button>
+                 </div>
+              </div>
+              <div class="space-y-2">
+                 <p class="text-[8px] text-[#f23645] uppercase font-bold text-center">SL</p>
+                 <div class="grid grid-cols-3 gap-1">
+                    <button (click)="applyPreset('SL', presetSide(), 1)" class="text-[9px] py-1.5 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white">1%</button>
+                    <button (click)="applyPreset('SL', presetSide(), 5)" class="text-[9px] py-1.5 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white">5%</button>
+                    <button (click)="applyPreset('SL', presetSide(), 10)" class="text-[9px] py-1.5 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white">10%</button>
+                 </div>
+              </div>
+            </div>
+          </div>
+
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label
+                for="stop-loss"
+                class="text-[10px] text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"
+              >
+                <span
+                  class="w-1 h-1 bg-[#f23645] rounded-full animate-pulse"
+                ></span>
+                Stop Loss (USDT)
+              </label>
+              <div class="flex flex-col gap-2">
+                <input
+                  id="stop-loss"
+                  type="number"
+                  [ngModel]="stopLossInput()"
+                  (ngModelChange)="stopLossInput.set($event)"
+                  class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-3 py-2.5 text-white font-mono text-xs focus:border-[#f23645] focus:outline-none transition"
+                  placeholder="Price..."
+                />
+                <div class="grid grid-cols-3 gap-2">
+                  <button
+                    (click)="applyActivePreset('SL', presetSide(), 1)"
+                    class="text-[10px] font-mono py-2 bg-[#1e222d] hover:bg-white/10 rounded border border-[#363c4e] transition text-gray-400"
+                  >
+                    1%
+                  </button>
+                  <button
+                    (click)="applyActivePreset('SL', presetSide(), 5)"
+                    class="text-[10px] font-mono py-2 bg-[#1e222d] hover:bg-white/10 rounded border border-[#363c4e] transition text-gray-400"
+                  >
+                    5%
+                  </button>
+                  <button
+                    (click)="applyActivePreset('SL', presetSide(), 10)"
+                    class="text-[10px] font-mono py-2 bg-[#1e222d] hover:bg-white/10 rounded border border-[#363c4e] transition text-gray-400"
+                  >
+                    10%
+                  </button>
+                </div>
+                @if (activeStopLoss(); as sl) {
+                <button
+                  (click)="clearStopLoss()"
+                  class="w-full px-3 py-2 bg-[#f23645]/10 text-[#f23645] text-[9px] font-bold uppercase rounded border border-[#f23645]/30 hover:bg-[#f23645]/20 transition flex items-center justify-center gap-2"
+                >
+                  <svg
+                    class="w-3 h-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                  Cancel ({{ (sl || 0) | number:'1.2-2' }})
+                </button>
+                } @else {
+                <button
+                  (click)="setStopLoss()"
+                  class="w-full px-3 py-2 bg-[#1e222d] text-gray-400 text-[9px] font-bold uppercase rounded border border-white/5 hover:border-[#f23645] hover:text-[#f23645] transition flex items-center justify-center gap-2"
+                >
+                  <svg
+                    class="w-3 h-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  Set SL
+                </button>
+                }
+              </div>
+            </div>
+
+            <div>
+              <label
+                for="take-profit"
+                class="text-[10px] text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"
+              >
+                <span
+                  class="w-1 h-1 bg-[#089981] rounded-full animate-pulse"
+                ></span>
+                Take Profit (USDT)
+              </label>
+              <div class="flex flex-col gap-2">
+                <input
+                  id="take-profit"
+                  type="number"
+                  [ngModel]="takeProfitInput()"
+                  (ngModelChange)="takeProfitInput.set($event)"
+                  class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-3 py-2.5 text-white font-mono text-xs focus:border-[#089981] focus:outline-none transition"
+                  placeholder="Price..."
+                />
+                <div class="grid grid-cols-3 gap-2">
+                  <button
+                    (click)="applyActivePreset('TP', presetSide(), 1)"
+                    class="text-[10px] font-mono py-2 bg-[#1e222d] hover:bg-white/10 rounded border border-[#363c4e] transition text-gray-400"
+                  >
+                    1%
+                  </button>
+                  <button
+                    (click)="applyActivePreset('TP', presetSide(), 5)"
+                    class="text-[10px] font-mono py-2 bg-[#1e222d] hover:bg-white/10 rounded border border-[#363c4e] transition text-gray-400"
+                  >
+                    5%
+                  </button>
+                  <button
+                    (click)="applyActivePreset('TP', presetSide(), 10)"
+                    class="text-[10px] font-mono py-2 bg-[#1e222d] hover:bg-white/10 rounded border border-[#363c4e] transition text-gray-400"
+                  >
+                    10%
+                  </button>
+                </div>
+                @if (activeTakeProfit(); as tp) {
+                <button
+                  (click)="clearTakeProfit()"
+                  class="w-full px-3 py-2 bg-[#089981]/10 text-[#089981] text-[9px] font-bold uppercase rounded border border-[#089981]/30 hover:bg-[#089981]/20 transition flex items-center justify-center gap-2"
+                >
+                  <svg
+                    class="w-3 h-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                  Cancel ({{ (tp || 0) | number:'1.2-2' }})
+                </button>
+                } @else {
+                <button
+                  (click)="setTakeProfit()"
+                  class="w-full px-3 py-2 bg-[#1e222d] text-gray-400 text-[9px] font-bold uppercase rounded border border-white/5 hover:border-[#089981] hover:text-[#089981] transition flex items-center justify-center gap-2"
+                >
+                  <svg
+                    class="w-3 h-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  Set TP
+                </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-between gap-2">
+            <button
+              (click)="setSizePercentage(0.25)"
+              class="flex-1 py-1 text-[10px] bg-[#131722] rounded hover:bg-[#2a2a35] transition font-mono border border-[#363c4e]"
+            >
+              25%
+            </button>
+            <button
+              (click)="setSizePercentage(0.50)"
+              class="flex-1 py-1 text-[10px] bg-[#131722] rounded hover:bg-[#2a2a35] transition font-mono border border-[#363c4e]"
+            >
+              50%
+            </button>
+            <button
+              (click)="setSizePercentage(0.75)"
+              class="flex-1 py-1 text-[10px] bg-[#131722] rounded hover:bg-[#2a2a35] transition font-mono border border-[#363c4e]"
+            >
+              75%
+            </button>
+            <button
+              (click)="setSizePercentage(1.00)"
+              class="flex-1 py-1 text-[10px] bg-[#131722] rounded hover:bg-[#2a2a35] transition font-mono border border-[#363c4e]"
+            >
+              Max
+            </button>
+          </div>
+        </div>
+
+        <div class="flex gap-2 mt-3 w-full">
+          <button
+            (click)="executeTrade()"
+            [disabled]="submitting()"
+            [class.bg-[#089981]]="presetSide() === 'LONG'"
+            [class.hover:bg-[#00dd77]]="presetSide() === 'LONG'"
+            [class.shadow-[0_4px_15px_rgba(8,153,129,0.2)]]="presetSide() === 'LONG'"
+            [class.bg-[#f23645]]="presetSide() === 'SHORT'"
+            [class.hover:bg-[#dd1133]]="presetSide() === 'SHORT'"
+            [class.shadow-[0_4px_15px_rgba(242,54,69,0.2)]]="presetSide() === 'SHORT'"
+            class="flex-1 text-white font-black uppercase tracking-[0.2em] text-sm py-4 rounded-lg transition transform hover:-translate-y-0.5 active:scale-[0.98]"
+          >
+            @if (submitting()) {
+              EXECUTING…
+            } @else {
+              EXECUTE {{ presetSide() }}
+            }
+          </button>
+  
+          <button
+            (mousedown)="ctaReact($event)"
+            (click)="toggleAutoTrading()"
+            [class.bg-[#089981]]="autoTradingEnabled()"
+            [class.bg-gray-800]="!autoTradingEnabled()"
+            [class.animate-pulse]="autoTradingEnabled()"
+            [class.shadow-[0_0_20px_0_rgba(255,255,255,0.7)]]="autoTradingEnabled()"
+            [class.opacity-50]="!autoTradingEnabled()"
+            [class.border-[#089981]]="autoTradingEnabled()"
+            [class.border-gray-700]="!autoTradingEnabled()"
+            class="w-16 flex flex-col items-center justify-center gap-1 rounded-lg text-white font-black uppercase text-xs transition-all hover:brightness-110 border"
+            title="Toggle Automated Trading Loop"
+          >
+            <mat-icon class="!w-4 !h-4 !text-base" [class.text-white]="autoTradingEnabled()" [class.text-gray-400]="!autoTradingEnabled()">smart_toy</mat-icon>
+            Auto
+          </button>
+        </div>
+
+        @if (tradeError()) {
+          <div class="trade-status trade-error mt-3 p-3 rounded-lg text-xs font-mono flex items-center justify-between text-[#ff7b7b] bg-[rgba(255,0,0,0.08)] border border-[rgba(255,0,0,0.25)]" role="alert">
+            <span>{{ tradeError() }}</span>
+            <button type="button" class="border-0 bg-transparent text-inherit text-lg leading-none cursor-pointer" aria-label="Dismiss error" (click)="clearTradeStatus()">×</button>
+          </div>
+        }
+
+        @if (lastTradeId()) {
+          <div class="trade-status trade-success mt-3 p-3 rounded-lg text-xs font-mono flex items-center justify-between text-[#7bff9d] bg-[rgba(0,255,120,0.08)] border border-[rgba(0,255,120,0.25)]" role="status" aria-live="polite">
+            <span>Order accepted: {{ lastTradeId() }}</span>
+            <button type="button" class="border-0 bg-transparent text-inherit text-lg leading-none cursor-pointer" aria-label="Dismiss success message" (click)="clearTradeStatus()">×</button>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+  } @else if (activeAppTab() === 'Ops') {
+    <div class="lg:h-[calc(100vh-120px)] animate-in fade-in duration-300">
+      <app-trading-ops-center></app-trading-ops-center>
+    </div>
+  } @else if (activeAppTab() === 'Home') {
+    <div class="lg:h-[calc(100vh-120px)] animate-in fade-in duration-300">
+      <app-home-dashboard></app-home-dashboard>
+    </div>
+  } @else {
+  <div class="flex-1 flex flex-col items-center justify-center h-[calc(100vh-120px)] animate-in fade-in duration-300">
+    <div class="w-20 h-20 bg-[#1e222d] border border-[#363c4e] rounded-full flex items-center justify-center mb-6 shadow-xl">
+      <mat-icon class="text-gray-400 !text-4xl !w-9 !h-9">
+        {{ activeAppTab() === 'Home' ? 'home' : (activeAppTab() === 'Markets' ? 'bar_chart' : (activeAppTab() === 'Earn' ? 'percent' : (activeAppTab() === 'Assets' ? 'account_balance_wallet' : (activeAppTab() === 'Ops' ? 'rule' : 'timer')))) }}
+      </mat-icon>
+    </div>
+    <h2 class="text-3xl font-black text-white tracking-widest uppercase mb-2">
+      {{ activeAppTab() }} Module
+    </h2>
+    <p class="text-sm text-gray-500 font-mono tracking-widest max-w-md text-center">
+      This module is being initialized for the Rave Godmode Alpha Preview. Data synchronization in progress.
+    </p>
+  </div>
+  }
+
+  <!-- Confirmation Modal -->
+  @if (showConfirmModal()) {
+  <div
+    class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300"
+  >
+    <div
+      class="bg-surface border border-line rounded-2xl p-8 max-w-md w-full shadow-2xl transform animate-in zoom-in-95 duration-300"
+    >
+      <div class="flex items-center gap-4 mb-8">
+        <div
+          [class]="pendingAction() === 'SELL' ? 'w-12 h-12 bg-sell/20 rounded-full flex items-center justify-center text-sell' : 'w-12 h-12 bg-buy/20 rounded-full flex items-center justify-center text-buy'"
+        >
+          <svg
+            class="w-6 h-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-xl font-black text-white tracking-widest uppercase">
+            {{ pendingAction() === 'BOT' ? 'Confirm Algo Execution' : 'Confirm
+            Order' }}
+          </h3>
+          <p
+            class="text-[10px] text-gray-400 font-mono uppercase tracking-widest"
+          >
+            {{ pendingAction() === 'BOT' ? 'Algo Strategy Authorization' :
+            'Manual Override' }}
+          </p>
+        </div>
+      </div>
+
+      <div class="space-y-6 mb-8">
+        <div class="grid grid-cols-2 gap-y-4 text-[10px]">
+          <div class="text-dim uppercase tracking-widest">Symbol</div>
+          <div class="text-white font-mono text-right font-bold">
+            {{ currentSymbol() }}
+          </div>
+
+          <div class="text-dim uppercase tracking-widest">Action</div>
+          <div
+            class="font-mono text-right font-black uppercase"
+            [class]="pendingAction() === 'SELL' ? 'text-sell' : 'text-buy'"
+          >
+            {{ pendingAction() }}
+          </div>
+
+          <div class="text-dim uppercase tracking-widest">Order Mode</div>
+          <div class="text-white font-mono text-right capitalize">
+            {{ pendingAction() === 'BOT' ? 'Algo' : orderMode() }}
+          </div>
+
+          @if (pendingAction() !== 'BOT') {
+          <div class="text-dim uppercase tracking-widest">Price</div>
+          <div class="text-white font-mono text-right font-bold">
+            ${{ (orderPriceInput() || 0) | number:'1.2-2' }}
+          </div>
+
+          <div class="text-dim uppercase tracking-widest">Size</div>
+          <div class="text-white font-mono text-right font-bold">
+            {{ orderSizeInput() }} BTC
+          </div>
+          }
+
+          <div class="text-dim uppercase tracking-widest">Leverage</div>
+          <div class="text-white font-mono text-right font-bold">
+            {{ leverage() }}x
+          </div>
+
+          <div class="text-dim uppercase tracking-widest">Margin Mode</div>
+          <div class="text-white font-mono text-right font-bold capitalize">
+            {{ marginMode() }}
+          </div>
+        </div>
+
+        <div class="p-4 bg-canvas border border-line rounded-xl text-center">
+          <div class="text-[9px] text-dim uppercase tracking-widest mb-1">
+            Required Margin (USDT)
+          </div>
+          <div
+            [class]="!isMarginSufficient() ? 'text-3xl font-black text-sell' : 'text-3xl font-black text-buy'"
+          >
+            ${{ pendingAction() === 'BOT' ? '0.00' : (requiredMargin() |
+            number:'1.2-2') }}
+          </div>
+          @if (!isMarginSufficient()) {
+          <div class="text-[9px] text-sell font-bold mt-1 uppercase">
+            Insufficient Balance
+          </div>
+          }
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <button
+          (click)="cancelAction()"
+          class="py-3 px-4 bg-canvas hover:bg-surface text-dim font-bold rounded-lg transition uppercase text-xs tracking-widest border border-line"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="confirmAction()"
+          [disabled]="!isMarginSufficient()"
+          [class]="!isMarginSufficient() ? 'py-3 px-4 bg-gray-700 text-gray-500 font-bold rounded-lg transition uppercase text-xs tracking-widest cursor-not-allowed' : (pendingAction() === 'SELL' ? 'py-3 px-4 bg-sell hover:bg-red-600 text-white font-black rounded-lg transition uppercase text-xs tracking-widest' : 'py-3 px-4 bg-buy hover:bg-emerald-600 text-white font-black rounded-lg transition uppercase text-xs tracking-widest')"
+        >
+          Confirm {{ pendingAction() }}
+        </button>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- Order Details Modal -->
+  @if (selectedOrderDetails()) {
+  <app-order-details-modal
+    [order]="selectedOrderDetails()"
+    (closeModal)="closeOrderDetails()"
+  >
+  </app-order-details-modal>
+  }
+
+  <!-- Historical Trades Modal -->
+  @if (showFullHistoryModal()) {
+  <app-historical-trades-modal
+    [history]="orderHistory()"
+    [symbols]="availableSymbols()"
+    (closeModal)="showFullHistoryModal.set(false)"
+  >
+  </app-historical-trades-modal>
+  }
+
+  <!-- Settings Modal -->
+  @if (showSettingsModal()) {
+  <app-settings-modal
+    (closeModal)="showSettingsModal.set(false)"
+    (saveKeys)="onSaveKeys($event)"
+  >
+  </app-settings-modal>
+  } @if (tradeConfirmationOrder()) {
+  <app-trade-confirmation-modal
+    [order]="tradeConfirmationOrder()"
+    (confirmTrade)="confirmBotTrade()"
+    (cancelTrade)="cancelBotTrade()"
+  ></app-trade-confirmation-modal>
+  } @if (showJournalModal()) {
+  <app-trade-journal-modal
+    (closeModal)="showJournalModal.set(false)"
+  ></app-trade-journal-modal>
+  } @if (isReplayModalOpen()) {
+  <app-replay-modal
+    (closeModal)="isReplayModalOpen.set(false)"
+  ></app-replay-modal>
+  } @if (showPostMortem()) {
+    <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+      <div class="w-full max-w-6xl max-h-[90vh] overflow-y-auto custom-scrollbar relative">
+        <button (click)="togglePostMortem()" class="absolute top-4 right-4 z-10 p-2 text-gray-400 hover:text-white bg-white/5 rounded-full backdrop-blur-md border border-white/10">
+           <mat-icon>close</mat-icon>
+        </button>
+        <app-post-mortem-view></app-post-mortem-view>
+      </div>
+    </div>
+  }
+
+  <!-- Fixed Bottom Navigation (Mobile View) -->
+  <div class="fixed bottom-0 left-0 right-0 z-[90] lg:hidden pointer-events-none">
+    
+    <!-- Action Bar Floating Above -->
+    <div class="px-3 pb-3 pointer-events-auto w-full max-w-lg mx-auto">
+      <div class="bg-[#1e222d] rounded-full flex items-center p-1.5 shadow-[0_4px_25px_rgba(0,0,0,0.5)] border border-[#363c4e]">
+        
+        <button (click)="setAppTab('Ops')" [class.text-[#089981]]="activeAppTab() === 'Ops'" class="flex flex-col items-center justify-center w-[50px] text-gray-400 hover:text-white transition-colors">
+          <mat-icon style="font-size: 20px; width: 20px; height: 20px;">rule</mat-icon>
+          <span class="text-[9px] mt-0.5 tracking-wider font-semibold uppercase">Ops</span>
+        </button>
+        
+        <button (click)="setAppTab('Spot')" [class.text-[#089981]]="activeAppTab() === 'Spot'" class="flex flex-col items-center justify-center w-[50px] text-gray-400 hover:text-white transition-colors">
+          <mat-icon style="font-size: 20px; width: 20px; height: 20px;">timer</mat-icon>
+          <span class="text-[9px] mt-0.5 tracking-wider font-semibold uppercase">Spot</span>
+        </button>
+
+        <div class="flex flex-1 h-[44px] ml-1 mr-1 font-black text-sm uppercase tracking-widest relative drop-shadow-md">
+          <!-- Buy/Long -->
+          <button (click)="quickBuy()"
+             class="absolute left-0 top-0 bottom-0 text-white hover:bg-[#00dd77] bg-[#089981] transition-colors flex items-center justify-center pb-0.5"
+             style="right: 50%; border-radius: 999px 0 0 999px; clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%); z-index: 2;">
+            Long
+          </button>
+          
+          <!-- Sell/Short -->
+          <button (click)="quickSell()"
+             class="absolute right-0 top-0 bottom-0 text-white hover:bg-[#dd1133] bg-[#f23645] transition-colors flex items-center justify-center pb-0.5"
+             style="left: calc(50% - 10px); border-radius: 0 999px 999px 0; clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%); z-index: 1;">
+            Short
+          </button>
+        </div>
+        
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bg-[#1e222d] border-t border-[#363c4e] flex justify-between px-6 pt-3 pointer-events-auto" style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));">
+      <button (click)="setAppTab('Home')" [class.text-[#089981]]="activeAppTab() === 'Home'" class="flex flex-col items-center text-gray-500 hover:text-[#089981] transition-colors gap-1">
+        <mat-icon style="font-size: 20px; width: 20px; height: 20px;">home</mat-icon>
+        <span class="text-[9px] font-medium tracking-wide">Home</span>
+      </button>
+      <button (click)="setAppTab('Markets')" [class.text-[#089981]]="activeAppTab() === 'Markets'" class="flex flex-col items-center text-gray-500 hover:text-[#089981] transition-colors gap-1">
+        <mat-icon style="font-size: 20px; width: 20px; height: 20px;">bar_chart</mat-icon>
+        <span class="text-[9px] font-medium tracking-wide">Markets</span>
+      </button>
+      <button (click)="setAppTab('Trade')" [class.text-[#089981]]="activeAppTab() === 'Trade'" class="flex flex-col items-center text-gray-500 hover:text-[#089981] transition-colors gap-1 relative">
+        <mat-icon style="font-size: 20px; width: 20px; height: 20px;">request_quote</mat-icon>
+        <span class="text-[9px] font-bold tracking-wide">Trade</span>
+        <div class="absolute -bottom-1 w-6 h-[3px] bg-[#089981] rounded-full"></div>
+      </button>
+      <button (click)="setAppTab('Earn')" [class.text-[#089981]]="activeAppTab() === 'Earn'" class="flex flex-col items-center text-gray-500 hover:text-[#089981] transition-colors gap-1">
+        <mat-icon style="font-size: 20px; width: 20px; height: 20px;">percent</mat-icon>
+        <span class="text-[9px] font-medium tracking-wide">Earn</span>
+      </button>
+      <button (click)="setAppTab('Assets')" [class.text-[#089981]]="activeAppTab() === 'Assets'" class="flex flex-col items-center text-gray-500 hover:text-[#089981] transition-colors gap-1">
+        <mat-icon style="font-size: 20px; width: 20px; height: 20px;">account_balance_wallet</mat-icon>
+        <span class="text-[9px] font-medium tracking-wide">Assets</span>
+      </button>
+    </div>
+  </div>
+</div>

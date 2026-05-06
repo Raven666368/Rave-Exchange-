@@ -1,0 +1,6 @@
+{
+  "name": "Rave Exchange",
+  "description": "Adaptive Perpetual Trading Bot v1 with SMC/ICT logic, real-time bybit v5 execution, and 9-gate verification engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
