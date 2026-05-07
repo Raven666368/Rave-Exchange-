@@ -1,4 +1,4 @@
-export type TradingOpsTab = 'sessions' | 'validation' | 'execution' | 'journal' | 'alerts';
+export type TradingOpsTab = 'sessions' | 'validation' | 'execution' | 'journal' | 'alerts' | 'traces';
 
 export interface TradingOpsVm {
   activeTab: TradingOpsTab;

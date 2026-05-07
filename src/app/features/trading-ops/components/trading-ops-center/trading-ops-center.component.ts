@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { TradingOpsVm, TradingOpsTab } from '../../store/trading-ops.models';
 import { BotJournalGridComponent } from '../bot-journal-grid.component';
+import { DecisionTraceExplorerComponent } from '../decision-trace-explorer.component';
 
 @Component({
   selector: 'app-trading-ops-center',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, BotJournalGridComponent],
+  imports: [CommonModule, ReactiveFormsModule, BotJournalGridComponent, DecisionTraceExplorerComponent],
   templateUrl: './trading-ops-center.component.html',
   styleUrls: ['./trading-ops-center.component.css']
 })

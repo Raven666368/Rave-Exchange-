@@ -542,6 +542,16 @@ app.get("/api/journal/tail", async (req, res) => {
   }
 });
 
+app.get("/api/traces", async (req, res) => {
+  try {
+    const traces = await import("./lib/trade-journal.js").then((m) => m.getDecisionTraces());
+    res.json(traces);
+  } catch (error: unknown) {
+    console.error("Traces read error:", error);
+    res.status(500).json({ error: "Failed to read traces" });
+  }
+});
+
 app.get("/api/journal/replay", async (req, res) => {
   const sessionId = req.query["session_id"] as string;
   const speed = req.query["speed"] ? parseInt(req.query["speed"] as string, 10) : 1000;
@@ -720,7 +730,7 @@ if (isMainModule(import.meta.url) || process.env["pm_id"]) {
     
     // Start Python backend
     console.log("[Python] Starting Rave Godmode v1 backend...");
-    const py = spawn("python3", ["-m", "python_app.main"], {
+    const py = spawn("python3", ["-m", "backend.rave_v1_main"], {
       stdio: "inherit",
       env: { ...process.env, PYTHONPATH: "." }
     });

@@ -37,6 +37,10 @@ export class BotApiService {
     return this.http.get<BotJournalEntryDto[]>(`${this.baseUrl}/journal`);
   }
 
+  getTraces(): Observable<any[]> {
+    return this.http.get<any[]>('/api/traces');
+  }
+
   saveJournalEntry(entry: Partial<BotJournalEntryDto>): Observable<BotJournalEntryDto> {
     return this.http.post<BotJournalEntryDto>(`${this.baseUrl}/journal`, entry);
   }

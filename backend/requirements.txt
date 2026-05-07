@@ -9,3 +9,7 @@ fastapi
 uvicorn
 pydantic
 redis
+sqlalchemy
+asyncpg
+psycopg2-binary
+scikit-learn

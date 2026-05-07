@@ -414,17 +414,69 @@ export class TradeJournal {
 }
 
 import { MongoClient } from 'mongodb';
+import pg from 'pg';
+const { Pool } = pg;
 
 // Singleton export
 export const tradeJournal = new TradeJournal();
 
 const mongoUri = process.env["MONGODB_URI"];
+const postgresUri = process.env["POSTGRES_URI"];
+
 const mongoClient = mongoUri ? new MongoClient(mongoUri, { serverSelectionTimeoutMS: 2000 }) : null;
 let dbConnected = false;
 let isConnecting = false;
 let lastConnectionAttempt = 0;
 const CONNECTION_COOLDOWN_MS = 10000; // Wait 10 seconds before retrying
 let journalsCollection: import('mongodb').Collection | null = null;
+
+// Postgres Pool
+const pgPool = postgresUri ? new Pool({ connectionString: postgresUri, ssl: { rejectUnauthorized: false } }) : null;
+let pgConnected = false;
+
+async function initPg() {
+  if (!pgPool || pgConnected) return;
+  try {
+    const client = await pgPool.connect();
+    // Simple table creation if not exists
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS journals (
+        id BIGINT PRIMARY KEY,
+        symbol TEXT,
+        side TEXT,
+        qty TEXT,
+        price TEXT,
+        stop_loss TEXT,
+        take_profit TEXT,
+        order_type TEXT,
+        status TEXT,
+        mode TEXT,
+        veto_reason TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        payload JSONB
+      )
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS decision_traces (
+        id TEXT PRIMARY KEY,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        symbol TEXT,
+        final_decision TEXT,
+        contributors JSONB,
+        strategy_weights JSONB,
+        pnl_snapshot FLOAT,
+        payload JSONB
+      )
+    `);
+    client.release();
+    pgConnected = true;
+    console.log("[PostgreSQL] Connected and table verified");
+  } catch (e) {
+    console.error("[PostgreSQL] Connection error:", e);
+    pgConnected = false;
+  }
+}
 
 async function initMongo() {
   if (!mongoClient || dbConnected || isConnecting) return;
@@ -453,26 +505,57 @@ async function initMongo() {
   }
 }
 
-if (mongoUri) {
-  initMongo().catch(console.error);
+if (postgresUri) {
+  initPg().catch(console.error);
 }
 
 // MongoDB backed wrappers for existing Express server code
-export async function insertJournalEntry(payload: import('mongodb').Document): Promise<string> {
-  if (!dbConnected) await initMongo();
+export async function insertJournalEntry(payload: Record<string, unknown>): Promise<string> {
+  const id = Date.now();
+  payload['id'] = id;
+  payload['createdAt'] = new Date();
+
+  // 1. Log to MongoDB
+  if (!dbConnected && mongoUri) await initMongo();
   if (dbConnected && journalsCollection) {
     try {
-      payload['createdAt'] = new Date();
-      // Ensure there's an id field equivalent to the previous logic
-      payload['id'] = Date.now(); 
       await journalsCollection.insertOne(payload);
-      return payload['id'].toString();
     } catch (e) {
       console.error("[MongoDB] Error inserting journal entry", e);
     }
   }
-  console.log("Writing to old journal entry API wrapper mapping (No MongoDB)", payload);
-  return Date.now().toString();
+
+  // 2. Log to PostgreSQL
+  if (!pgConnected && postgresUri) await initPg();
+  if (pgConnected && pgPool) {
+    try {
+      await pgPool.query(
+        "INSERT INTO journals (id, symbol, side, qty, price, stop_loss, take_profit, order_type, status, mode, veto_reason, payload) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+        [
+          id,
+          payload['symbol'],
+          payload['side'],
+          payload['qty'],
+          payload['price'],
+          payload['stopLoss'],
+          payload['takeProfit'],
+          payload['orderType'],
+          payload['status'],
+          payload['mode'],
+          payload['vetoReason'],
+          JSON.stringify(payload)
+        ]
+      );
+    } catch (e) {
+      console.error("[PostgreSQL] Error inserting journal entry", e);
+    }
+  }
+
+  if (!dbConnected && !pgConnected) {
+    console.log("Writing to old journal entry API (No DB Connected)", payload);
+  }
+  
+  return id.toString();
 }
 
 export async function getJournalEntries() {
@@ -502,6 +585,19 @@ export async function getJournalReplay(sessionId: string) {
   if (!dbConnected) await initMongo();
   if (dbConnected && journalsCollection) {
     return await journalsCollection.find({ sessionId }).sort({ createdAt: 1 }).toArray();
+  }
+  return [];
+}
+
+export async function getDecisionTraces() {
+  if (!pgConnected && postgresUri) await initPg();
+  if (pgConnected && pgPool) {
+    try {
+      const result = await pgPool.query("SELECT * FROM decision_traces ORDER BY timestamp DESC LIMIT 100");
+      return result.rows;
+    } catch (e) {
+      console.error("[PostgreSQL] Error fetching decision traces:", e);
+    }
   }
   return [];
 }

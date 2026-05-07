@@ -180,6 +180,11 @@
                <app-bot-journal-grid></app-bot-journal-grid>
             </section>
           }
+          @case ('traces') {
+            <section style="display: flex; flex-direction: column; height: 100%;">
+               <app-decision-trace-explorer></app-decision-trace-explorer>
+            </section>
+          }
           @case ('alerts') {
             <section>
               <div class="panel-title">Time-based alerts</div>

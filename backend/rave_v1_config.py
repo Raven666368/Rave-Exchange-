@@ -49,7 +49,10 @@ class GodmodeConfig:
     min_confluent_symbols: int = 2
 
     # MongoDB Configuration
-    mongodb_uri: str = os.getenv("MONGODB_URI", "mongodb+srv://Rave:<db_password>@cluster0.v2rgoc2.mongodb.net/?appName=Cluster0")
+    mongodb_uri: str = os.getenv("MONGODB_URI", "")
+    
+    # PostgreSQL Configuration
+    postgres_uri: str = os.getenv("POSTGRES_URI", "")
 
 # Singleton config instance
 CONFIG = GodmodeConfig()

@@ -36,6 +36,7 @@ export class TradingOpsCenterContainerComponent {
     { id: 'validation' as TradingOpsTab, label: 'Validation' },
     { id: 'execution' as TradingOpsTab, label: 'Execution' },
     { id: 'journal' as TradingOpsTab, label: 'Journal' },
+    { id: 'traces' as TradingOpsTab, label: 'Observer Traces' },
     { id: 'alerts' as TradingOpsTab, label: 'Alerts' }
   ];
 
