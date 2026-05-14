@@ -16,12 +16,18 @@ import { ExecutionMetric } from '../../core/state/event-schema';
         @if (executions().length > 0) {
           @for (exec of executions(); track $index) {
              <div class="mb-3 last:mb-0">
-               <div class="text-gray-300 font-bold">{{ exec.symbol || 'UNKNOWN' }}</div>
+               <div class="text-gray-300 font-bold mb-1 flex justify-between">
+                 <span>{{ exec.symbol || 'UNKNOWN' }}</span>
+                 <span [class.text-red-400]="exec.slip > 0" [class.text-green-400]="exec.slip <= 0">{{ exec.slip > 0 ? 'Negative' : 'Positive' }} Slip</span>
+               </div>
                <div class="grid grid-cols-2 gap-x-4 mt-1 text-gray-500">
                  <div>Intent: <span class="text-gray-300">{{ exec.intent | number:'1.2-2' }}</span></div>
                  <div>Fill: <span class="text-white">{{ exec.fill | number:'1.2-2' }}</span></div>
                  <div>Slip: <span [class.text-red-400]="exec.slip > 0" [class.text-green-400]="exec.slip <= 0">{{ exec.slip > 0 ? '+' : '' }}{{ exec.slip | number:'1.1-1' }}</span></div>
-                 <div>Latency: <span class="text-yellow-400">{{ exec.latency }}ms</span></div>
+                 <div>Latency: <span [class.text-red-400]="exec.latency > 150" [class.text-yellow-400]="exec.latency > 50 && exec.latency <= 150" [class.text-green-400]="exec.latency <= 50">{{ exec.latency }}ms</span></div>
+               </div>
+               <div class="mt-1 h-1 bg-[#1e222d] rounded flex overflow-hidden">
+                 <div class="h-full" [class.bg-red-500]="exec.slip > 0" [class.bg-green-500]="exec.slip <= 0" [style.width.%]="exec.slip > 0 ? 100 : Math.min(100, Math.abs(exec.slip) * 10)"></div>
                </div>
              </div>
           }
@@ -57,4 +63,5 @@ import { ExecutionMetric } from '../../core/state/event-schema';
 })
 export class ExecutionAnalyticsComponent {
   executions = input<ExecutionMetric[]>([]);
+  Math = Math;
 }

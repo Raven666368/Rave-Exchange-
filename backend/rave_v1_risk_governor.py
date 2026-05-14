@@ -35,7 +35,7 @@ class AutonomousGovernor:
         except Exception as e:
             logger.error(f"Governor init failed to fetch balance: {e}")
             
-    async def evaluate_tripwires(self):
+    async def evaluate_tripwires(self, microstructure_signals: Dict[str, Any] = None):
         """Evaluate system health based on metrics independently."""
         self.active_tripwires = []
         self.automated_actions = []
@@ -69,8 +69,20 @@ class AutonomousGovernor:
         # 3. Strategy Coherence
         if self.metrics["strategyCoherence"] < 0.5:
              self.active_tripwires.append({"level": "DEFENSIVE", "message": f"Strategy Coherence Collapsed: {self.metrics['strategyCoherence']:.2f}"})
-             if new_status == "NORMAL" or new_status == "WARNING":
+             if new_status in ["NORMAL", "WARNING"]:
                  new_status = "DEFENSIVE"
+
+        # 4. Microstructure Anomalies
+        if microstructure_signals:
+            for sym, sig in microstructure_signals.items():
+                if sig and sig.get("depth_collapse"):
+                    self.active_tripwires.append({"level": "WARNING", "message": f"Depth Collapse detected on {sym}"})
+                    if new_status == "NORMAL":
+                        new_status = "WARNING"
+                if sig and sig.get("exchange_divergence", 0) > 15: # > 15 bps divergence
+                    self.active_tripwires.append({"level": "DEFENSIVE", "message": f"High Exchange Divergence on {sym}: {sig['exchange_divergence']:.1f} bps"})
+                    if new_status in ["NORMAL", "WARNING"]:
+                        new_status = "DEFENSIVE"
                  
         self.status = new_status
         await self.enforce_actions()

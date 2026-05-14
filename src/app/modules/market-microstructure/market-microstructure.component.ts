@@ -53,6 +53,17 @@ import { MarketMicrostructureState } from '../../core/state/event-schema';
                     <span class="text-gray-500">ASK:</span>
                     <span class="text-red-400">{{ data()[symbol].best_ask | number:'1.2-2' }}</span>
                   </div>
+                  <div class="flex justify-between col-span-2">
+                    <span class="text-gray-500">EXCH DIVERGENCE:</span>
+                    <span class="text-gray-300 font-bold" [class.text-red-400]="data()[symbol].exchange_divergence > 5">
+                      {{ data()[symbol].exchange_divergence | number:'1.2-2' }} bps
+                    </span>
+                  </div>
+                  @if (data()[symbol].depth_collapse) {
+                    <div class="flex justify-between col-span-2 text-red-500 bg-red-900/20 px-1 rounded animate-pulse items-center">
+                       <span class="font-bold flex items-center gap-1"><mat-icon style="font-size: 12px; width: 12px; height: 12px;">warning</mat-icon> DEPTH COLLAPSE DETECTED</span>
+                    </div>
+                  }
                    <div class="col-span-2 mt-1">
                       <div class="w-full bg-gray-800 rounded-full h-1.5 flex overflow-hidden">
                          <div class="bg-green-500 h-1.5" [style.width.%]="(data()[symbol].imbalance / (1 + data()[symbol].imbalance)) * 100"></div>

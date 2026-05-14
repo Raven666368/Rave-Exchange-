@@ -213,7 +213,14 @@ class BotRunner:
             except Exception:
                 pass
                 
-            await self.governor.evaluate_tripwires()
+            # Collect microstructure signals for governor
+            microstructure_signals = {}
+            for sym in CONFIG.symbols:
+                sig = self.microstructure_engine.process_orderbook(sym)
+                if sig:
+                    microstructure_signals[sym] = sig
+
+            await self.governor.evaluate_tripwires(microstructure_signals)
             
             # Broadcast risk sentinel state
             await self.broadcast({

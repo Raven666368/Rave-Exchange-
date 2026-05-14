@@ -17,14 +17,25 @@ import { StrategyWeightEvent } from '../../core/state/event-schema';
           <div class="text-blue-400 mb-3 border-b border-[#1e222d] pb-2">[EURUSD {{ activeSide() }}]</div>
           <div class="space-y-3">
             @for (strategy of strategies(); track strategy.name) {
-              <div>
+              <div class="mb-4">
                 <div class="flex justify-between mb-1 text-gray-300">
                   <span>{{ strategy.name }}</span>
                   <span [class.text-green-400]="strategy.weight > 20" [class.text-gray-500]="strategy.weight <= 20">{{ strategy.weight }}%</span>
                 </div>
-                <div class="h-1.5 w-full bg-[#1e222d] rounded overflow-hidden">
+                <div class="h-1.5 w-full bg-[#1e222d] rounded overflow-hidden mb-2">
                   <div class="h-full bg-blue-500 rounded" [style.width.%]="strategy.weight"></div>
                 </div>
+                <!-- Signals Breakdown -->
+                @if (strategy.signals && strategy.signals.length > 0) {
+                  <div class="grid grid-cols-2 gap-1 px-1 mt-1 border-l-2 border-[#1e222d] ml-1">
+                    @for (sig of strategy.signals; track sig.name) {
+                      <div class="flex justify-between items-center bg-white/5 rounded px-1.5 py-0.5">
+                        <span class="text-[9px] text-gray-400 truncate">{{ sig.name }}</span>
+                        <span class="text-[9px] font-bold" [ngClass]="sig.color || 'text-gray-300'">{{ sig.value }}</span>
+                      </div>
+                    }
+                  </div>
+                }
               </div>
             }
           </div>
@@ -37,9 +48,19 @@ import { StrategyWeightEvent } from '../../core/state/event-schema';
                     <span>Momentum Worker</span>
                     <span class="text-green-400">42%</span>
                   </div>
-                  <div class="h-1.5 w-full bg-[#1e222d] rounded overflow-hidden flex">
+                  <div class="h-1.5 w-full bg-[#1e222d] rounded overflow-hidden flex mb-2">
                     <!-- Text based block to emulate user design, but using css -->
                     <div class="h-full bg-cyan-500" style="width: 42%"></div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-1 px-1 mt-1 border-l-2 border-[#1e222d] ml-1">
+                    <div class="flex justify-between items-center bg-white/5 rounded px-1.5 py-0.5">
+                      <span class="text-[9px] text-gray-400 truncate">RSI</span>
+                      <span class="text-[9px] font-bold text-green-400">OVERSOLD</span>
+                    </div>
+                    <div class="flex justify-between items-center bg-white/5 rounded px-1.5 py-0.5">
+                      <span class="text-[9px] text-gray-400 truncate">MACD</span>
+                      <span class="text-[9px] font-bold text-cyan-400">CROSS</span>
+                    </div>
                   </div>
               </div>
               <div>

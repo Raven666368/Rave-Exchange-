@@ -32,7 +32,7 @@ class LiquidityAnalyticsEngine:
         # We can store rolling history if needed for anomaly detection
         self.history = {}
 
-    def compute_metrics(self, normalized_book: Dict[str, Any], depth_levels: int = 15) -> Dict[str, Any]:
+    def compute_metrics(self, symbol: str, normalized_book: Dict[str, Any], depth_levels: int = 15) -> Dict[str, Any]:
         bids = normalized_book.get('bids', [])[:depth_levels]
         asks = normalized_book.get('asks', [])[:depth_levels]
 
@@ -49,8 +49,25 @@ class LiquidityAnalyticsEngine:
         # Here we just use crude total volume
         depth_score = bid_volume + ask_volume
 
+        # Sweep / Collapse tracking
+        if symbol not in self.history:
+            self.history[symbol] = {
+                "depth_scores": [],
+            }
+            
+        sym_history = self.history[symbol]
+        sym_history["depth_scores"].append(depth_score)
+        
+        # Keep last 10 scores
+        if len(sym_history["depth_scores"]) > 10:
+            sym_history["depth_scores"].pop(0)
+            
+        avg_depth = sum(sym_history["depth_scores"]) / max(1, len(sym_history["depth_scores"]))
+        
+        # If current depth is significantly lower than average (e.g. 40% drops suddenly)
+        depth_collapse = depth_score < (avg_depth * 0.6) and len(sym_history["depth_scores"]) > 5
+
         # Sweep detected could be calculated by looking at sudden changes in best bid/ask
-        # For now, placeholder or basic static evaluation
         sweep_detected = spread_bps > 20.0  # arbitrary example threshold
 
         return {
@@ -58,6 +75,7 @@ class LiquidityAnalyticsEngine:
             "spread_bps": spread_bps,
             "depth_score": depth_score,
             "sweep_detected": sweep_detected,
+            "depth_collapse": depth_collapse,
             "bid_volume": bid_volume,
             "ask_volume": ask_volume,
             "best_bid": normalized_book.get("best_bid"),
@@ -80,7 +98,15 @@ class MarketMicrostructureEngine:
         norm_ob = self.normalizer.normalize_book(raw_ob, 'bybit')
         
         # Analyze
-        metrics = self.analytics.compute_metrics(norm_ob)
+        metrics = self.analytics.compute_metrics(symbol, norm_ob)
+        
+        latest_prices = self.data_store.latest_prices.get(symbol, {})
+        binance_price = latest_prices.get('binance', 0.0)
+        bybit_price = metrics["best_bid"] # approximate with bid or mid
+        exchange_divergence_bps = 0.0
+        
+        if binance_price > 0 and bybit_price > 0:
+            exchange_divergence_bps = abs(bybit_price - binance_price) / binance_price * 10000
         
         return {
             "symbol": symbol,
@@ -88,6 +114,8 @@ class MarketMicrostructureEngine:
             "spread": norm_ob["spread"],
             "depth_score": metrics["depth_score"],
             "sweep_detected": metrics["sweep_detected"],
+            "depth_collapse": metrics["depth_collapse"],
+            "exchange_divergence": exchange_divergence_bps,
             "best_bid": metrics["best_bid"],
             "best_ask": metrics["best_ask"],
         }

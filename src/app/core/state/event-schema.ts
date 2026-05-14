@@ -19,6 +19,7 @@ export interface DecisionTraceEvent {
 export interface StrategyWeightEvent {
   name: string;
   weight: number;
+  signals?: { name: string; value: string; color?: string }[];
 }
 
 export interface ExecutionMetric {
@@ -55,6 +56,8 @@ export interface MarketMicrostructureState {
   spread: number;
   depth_score: number;
   sweep_detected: boolean;
+  depth_collapse: boolean;
+  exchange_divergence: number;
   best_bid: number;
   best_ask: number;
 }

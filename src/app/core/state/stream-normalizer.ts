@@ -61,6 +61,8 @@ export class StreamNormalizer {
           spread: Number(raw['spread']) || 0,
           depth_score: Number(raw['depth_score']) || 0,
           sweep_detected: Boolean(raw['sweep_detected']),
+          depth_collapse: Boolean(raw['depth_collapse']),
+          exchange_divergence: Number(raw['exchange_divergence']) || 0,
           best_bid: Number(raw['best_bid']) || 0,
           best_ask: Number(raw['best_ask']) || 0
       };

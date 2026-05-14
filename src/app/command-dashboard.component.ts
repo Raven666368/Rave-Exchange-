@@ -12,6 +12,8 @@ import { ExecutionAnalyticsComponent } from './modules/execution-analytics/execu
 import { SystemHealthComponent } from './modules/system-health/system-health.component';
 import { RiskSentinelComponent } from './modules/risk-sentinel/risk-sentinel.component';
 import { MarketMicrostructureComponent } from './modules/market-microstructure/market-microstructure.component';
+import { ActivePositionsComponent } from './modules/active-positions/active-positions.component';
+import { CmeGapMonitorComponent } from './modules/cme-gap-monitor/cme-gap-monitor.component';
 import { CommandStateService } from './core/state/command-state.service';
 
 interface StreamMessage {
@@ -22,7 +24,7 @@ interface StreamMessage {
 @Component({
   selector: 'app-command-dashboard',
   standalone: true,
-  imports: [CommonModule, MatIconModule, DecisionTraceComponent, StrategyMonitorComponent, ExecutionAnalyticsComponent, SystemHealthComponent, RiskSentinelComponent, MarketMicrostructureComponent],
+  imports: [CommonModule, MatIconModule, DecisionTraceComponent, StrategyMonitorComponent, ExecutionAnalyticsComponent, SystemHealthComponent, RiskSentinelComponent, MarketMicrostructureComponent, ActivePositionsComponent, CmeGapMonitorComponent],
   template: `
     <div class="h-full flex flex-col bg-[#050608] text-gray-300 font-mono p-4 border border-[#1e222d] rounded-none xl:rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden">
       
@@ -57,31 +59,34 @@ interface StreamMessage {
         <!-- Column 1: System & Execution Core (Left) -->
         <div class="col-span-12 lg:col-span-3 flex flex-col gap-4">
            <!-- System Health Array -->
-           <div class="h-1/3">
+           <div class="flex-1">
              <app-system-health [healthState]="commandState.systemHealth$()"></app-system-health>
            </div>
            
-           <!-- Execution Analytics Matrix -->
-           <div class="h-1/3">
-             <app-execution-analytics [executions]="commandState.executionAnalytics$()"></app-execution-analytics>
+           <!-- Liquidity Radar -->
+           <div class="flex-1">
+             <app-market-microstructure [data]="commandState.marketMicrostructure$()"></app-market-microstructure>
            </div>
 
-           <!-- Liquidity Radar -->
-           <div class="h-1/3">
-             <app-market-microstructure [data]="commandState.marketMicrostructure$()"></app-market-microstructure>
+           <!-- CME Gaps -->
+           <div class="flex-1">
+             <app-cme-gap-monitor></app-cme-gap-monitor>
            </div>
         </div>
 
         <!-- Column 2: The Reasoning Engine (Middle Wide) -->
-        <div class="col-span-12 lg:col-span-6 flex flex-col border border-[#1e222d] bg-[#0b0e14] rounded-lg overflow-hidden relative">
+        <div class="col-span-12 lg:col-span-5 flex flex-col gap-4 border border-[#1e222d] bg-[#0b0e14] rounded-lg overflow-hidden relative">
            <!-- Grid backdrop -->
            <div class="absolute inset-0 opacity-[0.03] pointer-events-none" style="background-image: linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, 1) 25%, rgba(255, 255, 255, 1) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, 1) 75%, rgba(255, 255, 255, 1) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, 1) 25%, rgba(255, 255, 255, 1) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, 1) 75%, rgba(255, 255, 255, 1) 76%, transparent 77%, transparent); background-size: 50px 50px;"></div>
            
            <div class="flex-1 overflow-hidden p-2 z-10 flex flex-col gap-2">
-              <div class="h-2/3 border border-[#1e222d] bg-[#050608]/50 overflow-hidden rounded">
+              <div class="h-1/2 border border-[#1e222d] bg-[#050608]/50 overflow-hidden rounded">
                 <app-decision-trace [traces]="commandState.decisionTrace$()"></app-decision-trace>
               </div>
-              <div class="h-1/3 border border-[#1e222d] bg-[#050608]/50 overflow-hidden rounded flex flex-col">
+              <div class="h-1/4 border border-[#1e222d] bg-[#050608]/50 overflow-hidden rounded">
+                 <app-execution-analytics [executions]="commandState.executionAnalytics$()"></app-execution-analytics>
+              </div>
+              <div class="h-1/4 border border-[#1e222d] bg-[#050608]/50 overflow-hidden rounded flex flex-col">
                  <!-- Live Signals / Redis Stream Minimal View -->
                  <div class="bg-[#1e222d] px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-[#363c4e] flex justify-between h-[30px] items-center shrink-0">
                     <span>Timeline Event Bus</span>
@@ -107,11 +112,14 @@ interface StreamMessage {
         </div>
 
         <!-- Column 3: Strategy Contribution (Right) -->
-        <div class="col-span-12 lg:col-span-3 flex flex-col gap-4">
-          <div class="h-1/2">
+        <div class="col-span-12 lg:col-span-4 flex flex-col gap-4">
+          <div class="flex-1 overflow-hidden">
+             <app-active-positions></app-active-positions>
+          </div>
+          <div class="flex-1 overflow-hidden shrink-0">
             <app-risk-sentinel [state]="commandState.riskSentinel$()"></app-risk-sentinel>
           </div>
-          <div class="h-1/2">
+          <div class="flex-1 overflow-hidden">
             <app-strategy-monitor [strategies]="commandState.strategyWeights$()"></app-strategy-monitor>
           </div>
         </div>
