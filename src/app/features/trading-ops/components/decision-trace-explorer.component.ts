@@ -2,6 +2,7 @@ import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BotApiService } from '../../../core/bot/bot-api.service';
 import { BotStreamService } from '../../../core/bot/bot-stream.service';
+import { DecisionTraceDto } from '../../../core/bot/bot.models';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -86,7 +87,7 @@ export class DecisionTraceExplorerComponent implements OnInit, OnDestroy {
   private readonly apiService = inject(BotApiService);
   private sub = new Subscription();
 
-  traces = signal<any[]>([]);
+  traces = signal<DecisionTraceDto[]>([]);
 
   ngOnInit() {
     this.apiService.getTraces().subscribe((data) => {
@@ -97,7 +98,7 @@ export class DecisionTraceExplorerComponent implements OnInit, OnDestroy {
     this.ws.connect(`${protocol}//${window.location.host}/ws/bot`);
 
     this.sub.add(
-      this.ws.onEvent<any>('signal').subscribe(newTrace => {
+      this.ws.onEvent<DecisionTraceDto>('signal').subscribe(newTrace => {
         this.traces.update((current) => [newTrace, ...current].slice(0, 100));
       })
     );

@@ -45,3 +45,13 @@ export interface BotJournalEntryDto {
   status: string;
   error_tracing: string | null;
 }
+
+export interface DecisionTraceDto {
+  id: string;
+  timestamp: string;
+  symbol: string;
+  final_decision: string;
+  contributors: unknown;
+  strategy_weights: unknown;
+  pnl_snapshot: number;
+}

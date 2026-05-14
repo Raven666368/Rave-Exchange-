@@ -13,15 +13,38 @@
         <h1 class="text-2xl font-black text-white tracking-widest uppercase">
           Rave<span class="text-buy">Exchange</span>
         </h1>
-        <p class="text-xs text-buy uppercase tracking-widest font-mono">
-          Testnet Environment
-        </p>
+        <div class="flex items-center gap-2">
+          <p class="text-xs text-buy uppercase tracking-widest font-mono">
+            {{ currentSymbol() }}
+          </p>
+          <div class="relative group">
+            <select
+              (change)="updateSymbol($any($event.target).value)"
+              class="appearance-none bg-transparent border-none p-0 pr-6 text-[10px] text-gray-500 hover:text-white uppercase tracking-widest font-bold cursor-pointer outline-none transition-colors"
+            >
+              @for (symbol of availableSymbols(); track symbol) {
+              <option [value]="symbol" [selected]="currentSymbol() === symbol" class="bg-[#1e222d] text-white">
+                {{ symbol }}
+              </option>
+              }
+            </select>
+            <mat-icon class="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-gray-600 group-hover:text-white transition-colors" style="font-size: 14px; width: 14px; height: 14px;">expand_more</mat-icon>
+          </div>
+        </div>
       </div>
       
       <!-- Desktop Navigation -->
       <div class="hidden lg:flex items-center gap-2 ml-6">
         <button (click)="setAppTab('Trade')" [class.bg-white]="activeAppTab() === 'Trade'" [class.bg-opacity-10]="activeAppTab() === 'Trade'" [class.text-white]="activeAppTab() === 'Trade'" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors">Trade</button>
         <button (click)="setAppTab('Ops')" [class.bg-white]="activeAppTab() === 'Ops'" [class.bg-opacity-10]="activeAppTab() === 'Ops'" [class.text-white]="activeAppTab() === 'Ops'" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors">Ops</button>
+        <button (click)="setAppTab('Replay')" [class.bg-white]="activeAppTab() === 'Replay'" [class.bg-opacity-10]="activeAppTab() === 'Replay'" [class.text-white]="activeAppTab() === 'Replay'" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors flex items-center gap-2">
+          <mat-icon style="font-size: 14px; width: 14px; height: 14px;">history</mat-icon>
+          Replay
+        </button>
+        <button (click)="setAppTab('Stress')" [class.bg-white]="activeAppTab() === 'Stress'" [class.bg-opacity-10]="activeAppTab() === 'Stress'" [class.text-white]="activeAppTab() === 'Stress'" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors flex items-center gap-2">
+          <mat-icon style="font-size: 14px; width: 14px; height: 14px;">pest_control</mat-icon>
+          Stress
+        </button>
         <button (click)="setAppTab('Command')" [class.bg-red-500]="activeAppTab() === 'Command'" [class.bg-opacity-10]="activeAppTab() === 'Command'" [class.text-red-500]="activeAppTab() === 'Command'" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-red-500 transition-colors flex items-center gap-2">
           <mat-icon style="font-size: 14px; width: 14px; height: 14px;">radar</mat-icon>
           Command
@@ -584,6 +607,30 @@
 
         <!-- Futures Trading Settings -->
         <div class="space-y-4 mb-4">
+          <!-- Quick Buy/Sell Buttons -->
+          <div class="grid grid-cols-2 gap-3 mb-6 animate-in slide-in-from-top-4 duration-500">
+            <button 
+              (click)="quickBuy()"
+              class="flex flex-col items-center justify-center py-4 bg-[#089981]/5 border border-[#089981]/20 rounded-xl hover:bg-[#089981]/15 transition-all group active:scale-95 shadow-[0_0_20px_rgba(8,153,129,0.05)]"
+            >
+              <div class="flex items-center gap-2 mb-1">
+                <mat-icon class="text-[#089981] group-hover:scale-125 transition-transform drop-shadow-[0_0_8px_rgba(8,153,129,0.5)]">bolt</mat-icon>
+                <span class="text-white font-black uppercase text-xs tracking-[0.2em]">Quick Long</span>
+              </div>
+              <span class="text-[9px] text-[#089981] font-mono tracking-widest opacity-80">INSTANT MKT ORDER</span>
+            </button>
+            <button 
+              (click)="quickSell()"
+              class="flex flex-col items-center justify-center py-4 bg-[#f23645]/5 border border-[#f23645]/20 rounded-xl hover:bg-[#f23645]/15 transition-all group active:scale-95 shadow-[0_0_20px_rgba(242,54,69,0.05)]"
+            >
+              <div class="flex items-center gap-2 mb-1">
+                <mat-icon class="text-[#f23645] group-hover:scale-125 transition-transform drop-shadow-[0_0_8px_rgba(242,54,69,0.5)]">bolt</mat-icon>
+                <span class="text-white font-black uppercase text-xs tracking-[0.2em]">Quick Short</span>
+              </div>
+              <span class="text-[9px] text-[#f23645] font-mono tracking-widest opacity-80">INSTANT MKT ORDER</span>
+            </button>
+          </div>
+
           <!-- Trading Pair Selector -->
           <div class="mb-4">
             <label
@@ -612,12 +659,11 @@
               >
               <select
                 id="margin-mode"
-                [ngModel]="marginMode()"
-                (ngModelChange)="marginMode.set($event)"
+                (change)="onMarginModeChange($any($event.target).value)"
                 class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-2 py-2 text-white font-mono text-xs focus:border-[#089981] outline-none"
               >
-                <option value="cross">Cross</option>
-                <option value="isolated">Isolated</option>
+                <option value="cross" [selected]="marginMode() === 'cross'">Cross</option>
+                <option value="isolated" [selected]="marginMode() === 'isolated'">Isolated</option>
               </select>
             </div>
             <div class="flex-[2]">
@@ -633,8 +679,8 @@
                 type="range"
                 min="1"
                 max="100"
-                [ngModel]="leverage()"
-                (ngModelChange)="onLeverageChange($event)"
+                [value]="leverage()"
+                (input)="onLeverageChange($any($event.target).value)"
                 class="w-full accent-[#089981] mt-1"
               />
               @if (leverageError()) {
@@ -769,8 +815,8 @@
             <input
               id="limit-price"
               type="number"
-              [ngModel]="orderPriceInput()"
-              (ngModelChange)="orderPriceInput.set($event)"
+              [value]="orderPriceInput()"
+              (input)="orderPriceInput.set($any($event.target).value)"
               class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-4 py-3 text-white font-mono text-sm focus:border-[#089981] focus:outline-none transition"
             />
             @if (orderPriceError()) {
@@ -790,8 +836,8 @@
               <input
                 id="stop-price"
                 type="number"
-                [ngModel]="stopPriceInput()"
-                (ngModelChange)="stopPriceInput.set($event)"
+                [value]="stopPriceInput()"
+                (input)="stopPriceInput.set($any($event.target).value)"
                 class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-4 py-3 text-white font-mono text-sm focus:border-yellow-500 focus:outline-none transition"
               />
             </div>
@@ -804,8 +850,8 @@
               <input
                 id="limit-price"
                 type="number"
-                [ngModel]="orderPriceInput()"
-                (ngModelChange)="orderPriceInput.set($event)"
+                [value]="orderPriceInput()"
+                (input)="orderPriceInput.set($any($event.target).value)"
                 class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-4 py-3 text-white font-mono text-sm focus:border-[#089981] focus:outline-none transition"
               />
               @if (orderPriceError()) {
@@ -826,8 +872,8 @@
               <input
                 id="btc-size"
                 type="number"
-                [ngModel]="orderSizeInput()"
-                (ngModelChange)="orderSizeInput.set($event)"
+                [value]="orderSizeInput()"
+                (input)="orderSizeInput.set($any($event.target).value)"
                 class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-4 py-3 text-white font-mono text-sm focus:border-[#089981] focus:outline-none transition"
               />
               @if (orderSizeError()) {
@@ -845,8 +891,8 @@
               <input
                 id="order-stop-loss"
                 type="number"
-                [ngModel]="orderStopLossInput()"
-                (ngModelChange)="orderStopLossInput.set($event)"
+                [value]="orderStopLossInput()"
+                (input)="orderStopLossInput.set($any($event.target).value)"
                 placeholder="Price..."
                 class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-4 py-3 text-white font-mono text-sm focus:border-[#f23645] focus:outline-none transition"
               />
@@ -878,7 +924,8 @@
                     <div class="flex-1 relative">
                       <input
                         type="number"
-                        [(ngModel)]="level.price"
+                        [value]="level.price"
+                        (input)="level.price = $any($event.target).value"
                         class="w-full bg-[#131722] border border-[#363c4e] rounded px-3 py-2 text-white font-mono text-xs focus:border-[#089981] outline-none"
                         placeholder="Price"
                       />
@@ -886,7 +933,8 @@
                     <div class="w-16 relative">
                       <input
                         type="number"
-                        [(ngModel)]="level.percent"
+                        [value]="level.percent"
+                        (input)="level.percent = $any($event.target).value"
                         class="w-full bg-[#131722] border border-[#363c4e] rounded px-2 py-2 text-white font-mono text-xs focus:border-[#089981] outline-none"
                         placeholder="%"
                       />
@@ -905,8 +953,8 @@
               <input
                 id="order-take-profit"
                 type="number"
-                [ngModel]="orderTakeProfitInput()"
-                (ngModelChange)="orderTakeProfitInput.set($event)"
+                [value]="orderTakeProfitInput()"
+                (input)="orderTakeProfitInput.set($any($event.target).value)"
                 placeholder="Price..."
                 class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-4 py-3 text-white font-mono text-sm focus:border-[#089981] focus:outline-none transition"
               />
@@ -949,20 +997,49 @@
               </div>
               <div class="space-y-2">
                  <p class="text-[8px] text-[#089981] uppercase font-bold text-center">TP</p>
-                 <div class="grid grid-cols-3 gap-1">
-                    <button (click)="applyPreset('TP', presetSide(), 1)" class="text-[9px] py-1.5 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white">1%</button>
-                    <button (click)="applyPreset('TP', presetSide(), 5)" class="text-[9px] py-1.5 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white">5%</button>
-                    <button (click)="applyPreset('TP', presetSide(), 10)" class="text-[9px] py-1.5 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white">10%</button>
+                 <div class="grid grid-cols-4 gap-1">
+                    <button (click)="applyPreset('TP', presetSide(), 1)" class="text-[8px] py-1 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white transition">1%</button>
+                    <button (click)="applyPreset('TP', presetSide(), 2)" class="text-[8px] py-1 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white transition">2%</button>
+                    <button (click)="applyPreset('TP', presetSide(), 5)" class="text-[8px] py-1 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white transition">5%</button>
+                    <button (click)="applyPreset('TP', presetSide(), 10)" class="text-[8px] py-1 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white transition">10%</button>
                  </div>
               </div>
               <div class="space-y-2">
                  <p class="text-[8px] text-[#f23645] uppercase font-bold text-center">SL</p>
-                 <div class="grid grid-cols-3 gap-1">
-                    <button (click)="applyPreset('SL', presetSide(), 1)" class="text-[9px] py-1.5 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white">1%</button>
-                    <button (click)="applyPreset('SL', presetSide(), 5)" class="text-[9px] py-1.5 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white">5%</button>
-                    <button (click)="applyPreset('SL', presetSide(), 10)" class="text-[9px] py-1.5 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white">10%</button>
+                 <div class="grid grid-cols-4 gap-1">
+                    <button (click)="applyPreset('SL', presetSide(), 1)" class="text-[8px] py-1 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white transition">1%</button>
+                    <button (click)="applyPreset('SL', presetSide(), 2)" class="text-[8px] py-1 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white transition">2%</button>
+                    <button (click)="applyPreset('SL', presetSide(), 3)" class="text-[8px] py-1 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white transition">3%</button>
+                    <button (click)="applyPreset('SL', presetSide(), 5)" class="text-[8px] py-1 bg-[#1e222d] border border-[#363c4e] rounded text-gray-400 hover:text-white transition">5%</button>
                  </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Manual Override Terminal -->
+          <div class="mt-6 border-t border-[#363c4e] pt-4">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <mat-icon class="text-red-500 scale-75">terminal</mat-icon>
+                <span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Manual Override Terminal</span>
+              </div>
+              <span class="text-[8px] text-gray-600 font-mono italic">Ready...</span>
+            </div>
+            <div class="relative group">
+              <input 
+                type="text"
+                [value]="manualCommand()"
+                (input)="manualCommand.set($any($event.target).value)"
+                (keyup.enter)="processManualCommand()"
+                placeholder="Type command (e.g. /buy btc 0.1)..."
+                class="w-full bg-[#0b0e14] border border-[#363c4e] rounded px-3 py-2.5 text-white font-mono text-[10px] focus:border-red-500 outline-none placeholder:text-gray-700 uppercase transition-all group-hover:border-red-900/50"
+              />
+              <div class="absolute right-3 top-2.5 text-[10px] text-red-500/30 animate-pulse">_</div>
+            </div>
+            <div class="flex gap-2 mt-2">
+              <button (click)="manualCommand.set('/kill'); processManualCommand()" class="text-[8px] text-gray-500 hover:text-red-500 transition uppercase font-bold">/kill</button>
+              <button (click)="manualCommand.set('/buy'); processManualCommand()" class="text-[8px] text-gray-500 hover:text-green-500 transition uppercase font-bold">/buy</button>
+              <button (click)="manualCommand.set('/sell'); processManualCommand()" class="text-[8px] text-gray-500 hover:text-red-500 transition uppercase font-bold">/sell</button>
             </div>
           </div>
 
@@ -982,8 +1059,8 @@
                 <input
                   id="stop-loss"
                   type="number"
-                  [ngModel]="stopLossInput()"
-                  (ngModelChange)="stopLossInput.set($event)"
+                  [value]="stopLossInput()"
+                  (input)="stopLossInput.set($any($event.target).value)"
                   class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-3 py-2.5 text-white font-mono text-xs focus:border-[#f23645] focus:outline-none transition"
                   placeholder="Price..."
                 />
@@ -1065,8 +1142,8 @@
                 <input
                   id="take-profit"
                   type="number"
-                  [ngModel]="takeProfitInput()"
-                  (ngModelChange)="takeProfitInput.set($event)"
+                  [value]="takeProfitInput()"
+                  (input)="takeProfitInput.set($any($event.target).value)"
                   class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-3 py-2.5 text-white font-mono text-xs focus:border-[#089981] focus:outline-none transition"
                   placeholder="Price..."
                 />
@@ -1223,6 +1300,14 @@
   } @else if (activeAppTab() === 'Command') {
     <div class="lg:h-[calc(100vh-120px)] h-[calc(100vh-200px)] animate-in fade-in duration-300">
       <app-command-dashboard></app-command-dashboard>
+    </div>
+  } @else if (activeAppTab() === 'Replay') {
+    <div class="lg:h-[calc(100vh-120px)] h-[calc(100vh-200px)] animate-in fade-in duration-300">
+      <app-historical-replay></app-historical-replay>
+    </div>
+  } @else if (activeAppTab() === 'Stress') {
+    <div class="lg:h-[calc(100vh-120px)] h-[calc(100vh-200px)] animate-in fade-in duration-300">
+      <app-stress-simulation></app-stress-simulation>
     </div>
   } @else if (activeAppTab() === 'Home') {
     <div class="lg:h-[calc(100vh-120px)] animate-in fade-in duration-300">
@@ -1387,7 +1472,7 @@
   @if (showSettingsModal()) {
   <app-settings-modal
     (closeModal)="showSettingsModal.set(false)"
-    (saveKeys)="onSaveKeys($event)"
+    (saveKeys)="onSettingsSave($event)"
   >
   </app-settings-modal>
   } @if (tradeConfirmationOrder()) {

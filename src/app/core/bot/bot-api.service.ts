@@ -5,7 +5,8 @@ import {
   BotConfigDto,
   BotKillSwitchDto,
   BotStatusDto,
-  BotJournalEntryDto
+  BotJournalEntryDto,
+  DecisionTraceDto
 } from './bot.models';
 
 @Injectable({ providedIn: 'root' })
@@ -37,8 +38,8 @@ export class BotApiService {
     return this.http.get<BotJournalEntryDto[]>(`${this.baseUrl}/journal`);
   }
 
-  getTraces(): Observable<any[]> {
-    return this.http.get<any[]>('/api/traces');
+  getTraces(): Observable<DecisionTraceDto[]> {
+    return this.http.get<DecisionTraceDto[]>('/api/traces');
   }
 
   saveJournalEntry(entry: Partial<BotJournalEntryDto>): Observable<BotJournalEntryDto> {

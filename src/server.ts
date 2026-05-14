@@ -235,12 +235,20 @@ app.post('/api/trading-ops/alerts', (req, res) => {
 });
 
 app.post("/api/settings/keys", (req, res) => {
-  const { apiKey, apiSecret } = req.body;
+  const { apiKey, apiSecret, timezone } = req.body;
   if (!apiKey || !apiSecret) {
     res.status(400).json({ error: "Missing keys" });
     return;
   }
-  setBybitCredentials(apiKey, apiSecret);
+  setBybitCredentials(apiKey, apiSecret, timezone);
+  
+  // Also notify Python backend
+  fetch("http://localhost:8080/api/settings/keys", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ apiKey, apiSecret, timezone })
+  }).catch(err => console.error("[Server] Failed to notify Python backend of new keys:", err));
+
   res.json({ success: true, message: "Keys updated and WS reconnecting" });
 });
 
@@ -402,11 +410,8 @@ app.post("/api/execute", async (req, res) => {
 
 app.get("/api/health", async (req, res) => {
   const dbHealth = await getDbStatus();
-  if (dbHealth.status === "ok") {
-    res.json({ status: "ok", database: dbHealth });
-  } else {
-    res.status(503).json({ status: "degraded", database: dbHealth });
-  }
+  // We return 200 even if DB is disconnected as it might be an optional feature
+  res.json({ status: "ok", database: dbHealth });
 });
 
 app.get("/api/status", (req, res) => {

@@ -35,7 +35,7 @@ export class OrderBookComponent implements OnInit, OnDestroy {
   private ws: WebSocket | null = null;
   private askMap = new Map<number, number>();
   private bidMap = new Map<number, number>();
-  private depth = 15;
+  displayDepth = signal<number>(20);
 
   constructor() {
     effect(() => {
@@ -63,6 +63,13 @@ export class OrderBookComponent implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const value = parseFloat(input.value) || 0;
     this.minSizeFilter.set(value);
+    this.processMaps();
+  }
+
+  updateDepth(event: Event) {
+    const input = event.target as HTMLSelectElement;
+    const value = parseInt(input.value) || 15;
+    this.displayDepth.set(value);
     this.processMaps();
   }
 
@@ -184,7 +191,7 @@ export class OrderBookComponent implements OnInit, OnDestroy {
     const ascendingAsks = Array.from(this.askMap.entries())
       .filter(([price, size]) => !isNaN(price) && !isNaN(size) && size >= minSize)
       .sort((a, b) => a[0] - b[0])
-      .slice(0, this.depth);
+      .slice(0, this.displayDepth());
     
     let askTotal = 0;
     const askEntries: OrderBookEntry[] = [];
@@ -199,7 +206,7 @@ export class OrderBookComponent implements OnInit, OnDestroy {
     const descendingBids = Array.from(this.bidMap.entries())
       .filter(([price, size]) => !isNaN(price) && !isNaN(size) && size >= minSize)
       .sort((a, b) => b[0] - a[0])
-      .slice(0, this.depth);
+      .slice(0, this.displayDepth());
 
     let bidTotal = 0;
     const bidEntries: OrderBookEntry[] = [];

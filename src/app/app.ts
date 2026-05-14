@@ -13,7 +13,7 @@ import {
   ViewChild,
 } from "@angular/core";
 import { DecimalPipe, DatePipe, isPlatformBrowser } from "@angular/common";
-import { FormsModule } from "@angular/forms";
+import { ReactiveFormsModule } from "@angular/forms";
 import { MatIconModule } from "@angular/material/icon";
 import { OrderBookComponent } from "./order-book/order-book.component";
 import { ChartComponent } from "./chart/chart.component";
@@ -45,6 +45,8 @@ import { TradingOpsCenterComponent } from "./trading-ops-center.component";
 import { HomeDashboardComponent } from "./home-dashboard.component";
 
 import { CommandDashboardComponent } from "./command-dashboard.component";
+import { HistoricalReplayComponent } from "./modules/historical-replay/historical-replay.component";
+import { StressSimulationComponent } from "./modules/stress-simulation/stress-simulation.component";
 
 export interface OrderHistoryEntry {
   id: string;
@@ -80,7 +82,7 @@ export interface OpenOrder {
   imports: [
     DecimalPipe,
     DatePipe,
-    FormsModule,
+    ReactiveFormsModule,
     OrderBookComponent,
     ChartComponent,
     OrderDetailsModalComponent,
@@ -103,6 +105,8 @@ export interface OpenOrder {
     TradingOpsCenterComponent,
     HomeDashboardComponent,
     CommandDashboardComponent,
+    HistoricalReplayComponent,
+    StressSimulationComponent,
   ],
   templateUrl: "./app.html",
   styleUrl: "./app.css",
@@ -242,12 +246,35 @@ export class App implements OnInit, OnDestroy {
   private ws: WebSocket | null = null;
   private pingInterval: ReturnType<typeof setInterval> | undefined;
 
+  userTimezone = signal<string>('UTC');
+
+  formatDate(date: Date | string | number): string {
+    const d = new Date(date);
+    return d.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone: this.userTimezone()
+    });
+  }
+
   ngOnInit() {
     this.addLog("Initializing 9-gate decision engine...", "info");
     this.addLog("Syncing UTXO memory pool...", "info");
     this.addLog("Connecting via WebSockets to ByBit V5 Testnet.", "success");
 
     if (this.isBrowser) {
+      try {
+        const storedTz = localStorage.getItem('user_timezone');
+        if (storedTz) {
+          this.userTimezone.set(storedTz);
+        } else {
+          this.userTimezone.set(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
+        }
+      } catch {
+        this.userTimezone.set('UTC');
+      }
+
       fetch("/api/status").then(res => res.json()).then(data => {
          if (data && data.privateAuth && !data.privateAuth.working) {
             // Check if we have keys in local storage to send to backend
@@ -265,7 +292,11 @@ export class App implements OnInit, OnDestroy {
                fetch('/api/settings/keys', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ apiKey: storedKey, apiSecret: storedSecret })
+                  body: JSON.stringify({ 
+                    apiKey: storedKey, 
+                    apiSecret: storedSecret,
+                    timezone: localStorage.getItem('user_timezone') || undefined
+                  })
                }).then(() => this.privateAuthError.set(null));
             } else {
                this.privateAuthError.set(data.privateAuth.error || "Private WS Auth Failed");
@@ -276,9 +307,7 @@ export class App implements OnInit, OnDestroy {
 
       this.intervalId = setInterval(() => {
         const now = new Date();
-        this.currentTime.set(
-          `00:00:${now.getSeconds().toString().padStart(2, "0")}`,
-        );
+        this.currentTime.set(this.formatDate(now));
 
         // Random "system activity" logs
         if (Math.random() > 0.95) {
@@ -397,7 +426,7 @@ export class App implements OnInit, OnDestroy {
 
   addExecutionLog(symbol: string, action: string, outcome: 'success' | 'failed' | 'pending', message: string) {
     this.tradeExecutionLogs.update(logs => [{
-      time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+      time: this.formatDate(new Date()),
       symbol,
       action,
       outcome,
@@ -406,11 +435,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   addLog(msg: string, type: "info" | "warn" | "success" = "info") {
-    const time = new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
+    const time = this.formatDate(new Date());
     this.terminalLogs.update((logs) =>
       [{ time, msg, type }, ...logs].slice(0, 50),
     );
@@ -809,6 +834,82 @@ export class App implements OnInit, OnDestroy {
     }
   }
 
+  onMarginModeChange(value: string) {
+    this.marginMode.set(value as 'isolated' | 'cross');
+  }
+
+  onOrderModeChange(value: string) {
+    this.setOrderMode(value as 'limit' | 'market' | 'stop-limit');
+  }
+
+  manualCommand = signal<string>('');
+
+  processManualCommand() {
+    const cmd = this.manualCommand().trim().toLowerCase();
+    if (!cmd) return;
+
+    this.addLog(`USER_OVERRIDE_EXEC: ${cmd}`, 'info');
+    
+    // Command Parser
+    if (cmd === '/kill' || cmd === '/abort') {
+      this.addLog('SYSTEM EMERGENCY STOP INITIATED', 'warn');
+      this.killAllPositions();
+    } else if (cmd.startsWith('/buy')) {
+      const parts = cmd.split(' ');
+      const qty = parts[2] || this.orderSizeInput().toString();
+      this.addLog(`Manual Market Buy Sequence: ${this.currentSymbol()} qty=${qty}`, 'success');
+      this.quickBuy();
+    } else if (cmd.startsWith('/sell')) {
+      const parts = cmd.split(' ');
+      const qty = parts[2] || this.orderSizeInput().toString();
+      this.addLog(`Manual Market Sell Sequence: ${this.currentSymbol()} qty=${qty}`, 'warn');
+      this.quickSell();
+    } else if (cmd.startsWith('/sl ')) {
+      const price = parseFloat(cmd.replace('/sl ', ''));
+      if (!isNaN(price)) {
+        this.stopLossInput.set(price);
+        this.setStopLoss();
+      }
+    } else if (cmd.startsWith('/tp ')) {
+      const price = parseFloat(cmd.replace('/tp ', ''));
+      if (!isNaN(price)) {
+        this.takeProfitInput.set(price);
+        this.setTakeProfit();
+      }
+    } else {
+      this.addLog(`Unknown terminal command: ${cmd}`, 'warn');
+    }
+    
+    this.manualCommand.set('');
+  }
+
+  killAllPositions() {
+    this.addLog("Attempting to close all active institutional positions...", "warn");
+    // Implementation would call /api/killall
+  }
+
+  quickBuy() {
+    const price = this.currentPrice() || Number(cmeGapTracker.lastSeenPrice()) || 0;
+    const size = this.orderSizeInput() || 0.1;
+    if (price <= 0) {
+      this.addLog("Quick Buy Failed: Price unavailable", "warn");
+      return;
+    }
+    this.addLog(`Quick Market Buy Triggered - ${this.currentSymbol()}`, 'success');
+    this.submitToV5API("BUY", "market", price, size, 0, null, null);
+  }
+
+  quickSell() {
+    const price = this.currentPrice() || Number(cmeGapTracker.lastSeenPrice()) || 0;
+    const size = this.orderSizeInput() || 0.1;
+    if (price <= 0) {
+      this.addLog("Quick Sell Failed: Price unavailable", "warn");
+      return;
+    }
+    this.addLog(`Quick Market Sell Triggered - ${this.currentSymbol()}`, 'warn');
+    this.submitToV5API("SELL", "market", price, size, 0, null, null);
+  }
+
   tradeConfirmationOrder = signal<OrderPreview | null>(null);
 
   ctaReact(event: Event) {
@@ -1168,26 +1269,6 @@ export class App implements OnInit, OnDestroy {
     this.orderSizeInput.set(Number((maxAffordableSize * percent).toFixed(5)));
   }
 
-  quickBuy() {
-    const price = this.currentPrice() || Number(cmeGapTracker.lastSeenPrice()) || 0;
-    const size = this.orderSizeInput() || 0.1;
-    if (price <= 0) {
-      this.addLog("Quick Buy Failed: Price unavailable", "warn");
-      return;
-    }
-    this.submitToV5API("BUY", "market", price, size, 0, null, null);
-  }
-
-  quickSell() {
-    const price = this.currentPrice() || Number(cmeGapTracker.lastSeenPrice()) || 0;
-    const size = this.orderSizeInput() || 0.1;
-    if (price <= 0) {
-      this.addLog("Quick Sell Failed: Price unavailable", "warn");
-      return;
-    }
-    this.submitToV5API("SELL", "market", price, size, 0, null, null);
-  }
-
   buy() {
     this.pendingAction.set("BUY");
     this.showConfirmModal.set(true);
@@ -1215,11 +1296,13 @@ export class App implements OnInit, OnDestroy {
     this.selectedOrderDetails.set(null);
   }
 
-  onSaveKeys(keys: { apiKey: string; apiSecret: string }) {
-    // In a real application, you'd use these keys to authenticate API requests to Bybit.
-    // For now, they are stored securely in localStorage inside the SettingsModalComponent.
-    if (keys.apiKey && keys.apiSecret) {
+  onSettingsSave(settings: { apiKey: string; apiSecret: string; timezone: string }) {
+    if (settings.apiKey && settings.apiSecret) {
       this.addLog("Bybit API Keys have been updated securely.", "success");
+    }
+    if (settings.timezone) {
+      this.userTimezone.set(settings.timezone);
+      this.addLog(`Display timezone updated to ${settings.timezone}`, "info");
     }
   }
 

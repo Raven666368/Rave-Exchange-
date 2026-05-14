@@ -12,6 +12,8 @@ from .rave_v1_config import CONFIG, Session, TradeRegime
 from .rave_v1_data import DataStore
 from .rave_v1_structure import StructureEngine
 from .rave_v1_adapters import BybitAdapter
+from .rave_v1_risk_governor import AutonomousGovernor
+from .market_microstructure.normalizer import MarketMicrostructureEngine
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("RaveV1_Engine")
@@ -26,9 +28,11 @@ class GateEngine:
         gates = {f"Gate {i}": False for i in range(1, 10)}
         reasons = {}
         
-        df_5m = self.data.candles.get(symbol)
-        if df_5m is None: 
-            return gates, {"Error": "No candle data loaded yet."}
+        df_5m = self.data.get_dataframe(symbol, '5m')
+        df_4h = self.data.get_dataframe(symbol, '4h')
+        
+        if df_5m.empty: 
+            return gates, {"Error": "No 5m candle data loaded yet."}
         
         current_price = self.data.latest_prices.get(symbol, {}).get('bybit', df_5m['close'].iloc[-1])
         
@@ -57,8 +61,8 @@ class GateEngine:
         gates["Gate 5"] = is_fvg
         reasons["Gate 5"] = "Unmitigated FVG in path" if is_fvg else "No FVG/OB"
         
-        # 6. HTF 4H Confluence (Mocked using 5m data here for scaffold)
-        bias = self.structure.determine_htf_bias(df_5m, current_price) 
+        # 6. HTF 4H Confluence
+        bias = self.structure.determine_htf_bias(df_4h, current_price) 
         gates["Gate 6"] = bias in ["discount", "premium"]
         reasons["Gate 6"] = f"HTF Confluence: {bias}"
         
@@ -124,6 +128,8 @@ class BotRunner:
     def __init__(self):
         self.data_store = DataStore()
         self.bybit_adapter = BybitAdapter(self.data_store.bybit)
+        self.governor = AutonomousGovernor(self.bybit_adapter)
+        self.microstructure_engine = MarketMicrostructureEngine(self.data_store)
         self.structure = StructureEngine()
         self.engine = GateEngine(self.data_store, self.structure)
         self.testnet_signals_captured = 0
@@ -193,6 +199,43 @@ class BotRunner:
                 dead.append(ws)
         for ws in dead:
             self.connected_clients.remove(ws)
+
+    async def governance_loop(self):
+        while True:
+            await asyncio.sleep(5) # Evaluates risk every 5 seconds
+            
+            # Compute some metrics
+            self.governor.metrics["latency"] = self.redis_lag
+            
+            # Use structure to fill coherence
+            try:
+                self.governor.metrics["strategyCoherence"] = 0.85 # Mock
+            except Exception:
+                pass
+                
+            await self.governor.evaluate_tripwires()
+            
+            # Broadcast risk sentinel state
+            await self.broadcast({
+                "type": "risk_sentinel",
+                "payload": self.governor.get_state()
+            })
+            
+            # Log tripwires
+            if self.governor.status != "NORMAL":
+                logger.warning(f"[GOVERNOR] Triggered {self.governor.status}. Actions: {self.governor.automated_actions}")
+
+    async def microstructure_loop(self):
+        while True:
+            await asyncio.sleep(1) # Emit 1-second cadence
+            
+            for sym in CONFIG.symbols:
+                signal = self.microstructure_engine.process_orderbook(sym)
+                if signal:
+                    await self.broadcast({
+                        "type": "market_microstructure",
+                        "payload": signal
+                    })
 
     async def log_journal(self, entry: dict):
         # Broadcast to UI
@@ -295,21 +338,43 @@ class BotRunner:
                 }
                 await self.log_market_data(snapshot)
 
+    async def update_credentials(self, api_key: str, api_secret: str):
+        logger.info(f"[Runner] Updating Bybit credentials... (Key: {api_key[:4]}***)")
+        CONFIG.bybit_api_key = api_key
+        CONFIG.bybit_api_secret = api_secret
+        
+        # Update DataStore bybit exchange
+        self.data_store.bybit.apiKey = api_key
+        self.data_store.bybit.secret = api_secret
+        
+        # Check auth immediately
+        success = await self.bybit_adapter.check_auth()
+        if success:
+            logger.info("[Runner] Bybit Auth succeeded after credential update.")
+        else:
+            logger.error("[Runner] Bybit Auth FAILED after credential update.")
+        return success
+
     async def start(self):
         await self.init_mongo()
         await self.init_postgres()
         await self.data_store.initialize()
         await self.bybit_adapter.check_auth()
+        await self.governor.initialize()
         
         tasks = []
         for sym in CONFIG.symbols:
-            await self.data_store.fetch_ohlcv(sym)
-            tasks.append(asyncio.create_task(self.data_store.watch_ticker_bybit(sym)))
-            tasks.append(asyncio.create_task(self.data_store.watch_ticker_binance(sym)))
+            await self.data_store.fetch_ohlcv(sym, timeframe='5m')
+            await self.data_store.fetch_ohlcv(sym, timeframe='4h')
+            
+        stream_tasks = await self.data_store.start_market_streams(CONFIG.symbols)
+        tasks.extend(stream_tasks)
             
         tasks.append(asyncio.create_task(self.bybit_adapter.watch_orders_loop()))
         tasks.append(asyncio.create_task(self.analysis_loop()))
         tasks.append(asyncio.create_task(self.bg_log_market_data()))
+        tasks.append(asyncio.create_task(self.governance_loop()))
+        tasks.append(asyncio.create_task(self.microstructure_loop()))
         
         logger.info("Rave Godmode v1 components started. Gate engine Armed.")
         logger.info("Forward testing required: 20 clean testnet signals prior to live allocation.")
@@ -347,11 +412,11 @@ class BotRunner:
                         "reasons": reasons
                     })
                 else:
-                    failed_gates = [k for k, v in gates.items() if not v]
-                    failed_reason = f"{failed_gates[0]} failed: {reasons.get(failed_gates[0], 'Unknown')}" if failed_gates else "Unknown"
+                    # Extract all failed gates with their specific reasons for better debugging
+                    failed_gates_details = [f"{k}: {reasons.get(k, 'N/A')}" for k, v in gates.items() if not v]
+                    failed_reason = " | ".join(failed_gates_details)[:254]
                     
-                    # Optional: We could log skipped traces, but it might be too noisy. Let's just log every 10 loops or so, or skip.
-                    
+                    # Log the skipped signal with detailed reasoning to the journal for transparency
                     await self.log_journal({
                         "symbol": sym,
                         "side": "N/A",
@@ -514,7 +579,7 @@ async def handle_execute(request):
         runner = request.app['runner']
         
         symbol = payload.get("symbol", "BTCUSDT")
-        side = payload.get("side", "Buy").lower()
+        side = payload.get("side", "buy").lower()
         amount = float(payload.get("qty", 0.001))
         
         # In this context, we usually do market orders from the dashboard
@@ -523,7 +588,8 @@ async def handle_execute(request):
             side=side,
             amount=amount,
             stop_loss=float(payload.get("stopLoss")) if payload.get("stopLoss") else None,
-            take_profit=float(payload.get("takeProfit")) if payload.get("takeProfit") else None
+            take_profit=float(payload.get("takeProfit")) if payload.get("takeProfit") else None,
+            reduce_only=bool(payload.get("reduceOnly"))
         )
         
         # Log manually initiated trade
@@ -531,7 +597,7 @@ async def handle_execute(request):
             "symbol": symbol,
             "side": side.upper(),
             "qty": str(amount),
-            "price": str(runner.data_store.get_current_price(symbol)),
+            "price": str(runner.data_store.latest_prices.get(symbol, {}).get('bybit', 0)),
             "status": "Confirmed",
             "mode": "manual-ui",
             "exchangeOrderId": str(res.get('id', '')),
@@ -552,6 +618,22 @@ async def handle_execute(request):
     except Exception as e:
         logger.error(f"Manual Execution Error: {e}")
         return web.json_response({"status": "rejected", "error": str(e)}, status=400)
+
+async def handle_update_keys(request):
+    try:
+        payload = await request.json()
+        runner = request.app['runner']
+        apiKey = payload.get("apiKey")
+        apiSecret = payload.get("apiSecret")
+        
+        if not apiKey or not apiSecret:
+            return web.json_response({"status": "error", "message": "Missing apiKey or apiSecret"}, status=400)
+            
+        success = await runner.update_credentials(apiKey, apiSecret)
+        return web.json_response({"status": "ok" if success else "auth_failed", "success": success})
+    except Exception as e:
+        logger.error(f"Update Keys Error: {e}")
+        return web.json_response({"status": "error", "error": str(e)}, status=400)
 
 async def handle_journal(request):
     try:
@@ -584,15 +666,34 @@ async def websocket_handler(request):
     
     return ws
 
+async def handle_market_data(request):
+    runner = request.app['runner']
+    symbol = request.query.get('symbol')
+    
+    if symbol:
+        return web.json_response({
+            "symbol": symbol,
+            "prices": runner.data_store.latest_prices.get(symbol, {}),
+            "orderbook": runner.data_store.latest_orderbooks.get(symbol, {})
+        })
+    else:
+        return web.json_response({
+            "prices": runner.data_store.latest_prices,
+            "orderbooks": runner.data_store.latest_orderbooks
+        })
+
 async def init_app(runner):
     app = web.Application()
     app['runner'] = runner
-    app.router.add_get('/status', handle_status)
-    app.router.add_get('/health', handle_health)
-    app.router.add_get('/signals', handle_signals)
-    app.router.add_post('/execute', handle_execute)
-    app.router.add_post('/journal', handle_journal)
-    app.router.add_post('/killswitch', handle_killswitch)
+    # Prefixing all routes with /api for cleaner proxying
+    app.router.add_get('/api/status', handle_status)
+    app.router.add_get('/api/health', handle_health)
+    app.router.add_get('/api/signals', handle_signals)
+    app.router.add_get('/api/market', handle_market_data)
+    app.router.add_post('/api/execute', handle_execute)
+    app.router.add_post('/api/journal', handle_journal)
+    app.router.add_post('/api/killswitch', handle_killswitch)
+    app.router.add_post('/api/settings/keys', handle_update_keys)
     app.router.add_get('/ws/bot', websocket_handler)
     return app
 

@@ -1,10 +1,10 @@
-import {ChangeDetectionStrategy, Component, output, signal, OnInit} from '@angular/core';
-import {FormsModule} from '@angular/forms';
+import {ChangeDetectionStrategy, Component, output, signal, OnInit, inject} from '@angular/core';
+import {ReactiveFormsModule, FormBuilder, FormGroup, Validators} from '@angular/forms';
 
 @Component({
   selector: 'app-settings-modal',
   standalone: true,
-  imports: [FormsModule],
+  imports: [ReactiveFormsModule],
   template: `
     <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
       <div class="bg-[#1e222d] border border-[#363c4e] rounded-xl p-6 max-w-lg w-full shadow-[0_0_50px_rgba(0,0,0,0.5)] transform animate-in zoom-in-95 duration-300">
@@ -23,15 +23,24 @@ import {FormsModule} from '@angular/forms';
           </button>
         </div>
 
-        <div class="space-y-4 mb-6">
+        <form [formGroup]="settingsForm" (ngSubmit)="saveSettings()" class="space-y-4 mb-6">
           <div class="flex flex-col gap-1">
             <label for="bybit-api-key" class="text-[10px] text-gray-500 uppercase tracking-widest">Bybit API Key</label>
-            <input id="bybit-api-key" type="password" [(ngModel)]="apiKey" class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-3 py-3 text-white font-mono focus:border-[#089981] outline-none" placeholder="Enter API Key" />
+            <input id="bybit-api-key" type="password" formControlName="apiKey" class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-3 py-3 text-white font-mono focus:border-[#089981] outline-none" placeholder="Enter API Key" />
           </div>
           
           <div class="flex flex-col gap-1">
             <label for="bybit-api-secret" class="text-[10px] text-gray-500 uppercase tracking-widest">Bybit API Secret</label>
-            <input id="bybit-api-secret" type="password" [(ngModel)]="apiSecret" class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-3 py-3 text-white font-mono focus:border-[#089981] outline-none" placeholder="Enter API Secret" />
+            <input id="bybit-api-secret" type="password" formControlName="apiSecret" class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-3 py-3 text-white font-mono focus:border-[#089981] outline-none" placeholder="Enter API Secret" />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="user-timezone" class="text-[10px] text-gray-500 uppercase tracking-widest">Local Timezone</label>
+            <select id="user-timezone" formControlName="timezone" class="w-full bg-[#131722] border border-[#363c4e] rounded-lg px-3 py-3 text-white font-mono focus:border-[#089981] outline-none">
+              @for (tz of timezones; track tz) {
+                <option [value]="tz">{{ tz }}</option>
+              }
+            </select>
           </div>
           
           <div class="p-3 bg-[#089981]/10 border border-[#089981]/30 rounded-lg flex items-start gap-3 mt-4">
@@ -39,55 +48,87 @@ import {FormsModule} from '@angular/forms';
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p class="text-[11px] text-[#089981] leading-relaxed">
-              Keys are stored securely in your browser's local storage and are never sent to our servers. They are only used to connect directly to the Bybit API from your browser.
+              Settings are stored securely in your browser's local storage and are never sent to our servers. API keys are only used to connect directly to the Bybit API.
             </p>
           </div>
           
           @if (errorMessage()) {
             <p class="text-[11px] text-[#f23645] font-bold mt-2">{{ errorMessage() }}</p>
           }
-        </div>
 
-        <div class="flex items-center gap-3 justify-end mt-8 border-t border-[#363c4e] pt-6">
-          <button (click)="closeModal.emit()" class="px-5 py-2.5 rounded-lg font-bold text-gray-400 hover:text-white uppercase tracking-widest text-xs transition">
-            Cancel
-          </button>
-          <button (click)="saveSettings()" class="px-5 py-2.5 bg-[#089981] hover:bg-[#089981]/80 text-white rounded-lg font-bold uppercase tracking-widest text-xs transition">
-            Save Keys
-          </button>
-        </div>
+          <div class="flex items-center gap-3 justify-end mt-8 border-t border-[#363c4e] pt-6">
+            <button type="button" (click)="closeModal.emit()" class="px-5 py-2.5 rounded-lg font-bold text-gray-400 hover:text-white uppercase tracking-widest text-xs transition">
+              Cancel
+            </button>
+            <button type="submit" class="px-5 py-2.5 bg-[#089981] hover:bg-[#089981]/80 text-white rounded-lg font-bold uppercase tracking-widest text-xs transition">
+              Save Settings
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SettingsModalComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  
   closeModal = output<void>();
-  saveKeys = output<{apiKey: string, apiSecret: string}>();
+  saveKeys = output<{apiKey: string, apiSecret: string, timezone: string}>();
 
   errorMessage = signal<string | null>(null);
 
-  apiKey = signal<string>('');
-  apiSecret = signal<string>('');
+  settingsForm: FormGroup = this.fb.group({
+    apiKey: ['', Validators.required],
+    apiSecret: ['', Validators.required],
+    timezone: [Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC']
+  });
+
+  timezones = [
+    'UTC',
+    'America/New_York',
+    'America/Chicago',
+    'America/Denver',
+    'America/Los_Angeles',
+    'Europe/London',
+    'Europe/Paris',
+    'Europe/Berlin',
+    'Asia/Tokyo',
+    'Asia/Hong_Kong',
+    'Asia/Singapore',
+    'Australia/Sydney',
+    'Pacific/Auckland'
+  ];
 
   ngOnInit() {
     try {
-      this.apiKey.set(localStorage.getItem('bybit_api_key') || '');
-      this.apiSecret.set(localStorage.getItem('bybit_api_secret') || '');
+      const storedKey = localStorage.getItem('bybit_api_key') || '';
+      const storedSecret = localStorage.getItem('bybit_api_secret') || '';
+      const storedTz = localStorage.getItem('user_timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+      
+      this.settingsForm.patchValue({
+        apiKey: storedKey,
+        apiSecret: storedSecret,
+        timezone: storedTz
+      });
     } catch {
       console.warn('localStorage access denied');
     }
   }
 
   saveSettings() {
-    if (!this.apiKey().trim() || !this.apiSecret().trim()) {
+    if (this.settingsForm.invalid) {
       this.errorMessage.set('Bybit API Key and Secret are required.');
       return;
     }
+    
+    const { apiKey, apiSecret, timezone } = this.settingsForm.value;
+    
     this.errorMessage.set(null);
     try {
-      localStorage.setItem('bybit_api_key', this.apiKey());
-      localStorage.setItem('bybit_api_secret', this.apiSecret());
+      localStorage.setItem('bybit_api_key', apiKey);
+      localStorage.setItem('bybit_api_secret', apiSecret);
+      localStorage.setItem('user_timezone', timezone);
     } catch {
       console.warn('localStorage access denied');
     }
@@ -97,15 +138,18 @@ export class SettingsModalComponent implements OnInit {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        apiKey: this.apiKey(),
-        apiSecret: this.apiSecret()
+        apiKey: apiKey,
+        apiSecret: apiSecret,
+        timezone: timezone
       })
     }).catch(err => console.error("Error saving keys to backend", err));
     
     this.saveKeys.emit({
-      apiKey: this.apiKey(),
-      apiSecret: this.apiSecret()
+      apiKey,
+      apiSecret,
+      timezone
     });
     this.closeModal.emit();
   }
 }
+

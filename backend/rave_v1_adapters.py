@@ -1,5 +1,6 @@
 import logging
-from typing import Dict, Any, Optional, List
+import asyncio
+from typing import Dict, Any, Optional, List, Callable
 import ccxt.async_support as ccxt
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,41 @@ class BybitAdapter:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
 
+    async def _execute_with_retry(self, func: Callable, *args, retries: int = 3, backoff_factor: float = 1.5, **kwargs):
+        func_name = getattr(func, '__name__', str(func))
+        for attempt in range(retries):
+            try:
+                return await func(*args, **kwargs)
+            except (ccxt.NetworkError, ccxt.RequestTimeout, ccxt.ExchangeNotAvailable) as e:
+                if attempt == retries - 1:
+                    logger.error(f"❌ Max retries reached for {func_name}: {e}")
+                    raise
+                sleep_time = backoff_factor ** attempt
+                logger.warning(f"⚠️ Transient network error in {func_name} (attempt {attempt+1}/{retries}): {e}. Retrying in {sleep_time:.2f}s...")
+                await asyncio.sleep(sleep_time)
+            except ccxt.RateLimitExceeded as e:
+                sleep_time = (backoff_factor ** attempt) * 2
+                if attempt == retries - 1:
+                    logger.error(f"❌ Rate limit exceeded and max retries reached for {func_name}: {e}")
+                    raise
+                logger.warning(f"⚠️ Rate limit exceeded in {func_name} (attempt {attempt+1}/{retries}): {e}. Retrying in {sleep_time:.2f}s...")
+                await asyncio.sleep(sleep_time)
+            except ccxt.AuthenticationError as e:
+                logger.error(f"❌ Authentication Error in {func_name}: {e}. Check API keys and environment variables.")
+                raise
+            except ccxt.PermissionDenied as e:
+                logger.error(f"❌ Permission Denied in {func_name}: {e}. Verify API key scope ('Order', 'Position') or IP whitelist.")
+                raise
+            except ccxt.InsufficientFunds as e:
+                logger.error(f"❌ Insufficient Funds in {func_name}: {e}.")
+                raise
+            except ccxt.InvalidOrder as e:
+                logger.error(f"❌ Invalid Order parameters for {func_name}: {e}.")
+                raise
+            except Exception as e:
+                logger.error(f"❌ Unexpected error in {func_name}: {e}")
+                raise
+
     async def check_auth(self) -> bool:
         """
         Preflight check to verify Bybit authentication and permissions.
@@ -28,7 +64,7 @@ class BybitAdapter:
         try:
             # fetch balance is a private endpoint that requires valid keys
             logger.info("Running Bybit API Auth Preflight Check...")
-            balance = await self.exchange.fetch_balance()
+            await self._execute_with_retry(self.exchange.fetch_balance, retries=2)
             self.private_auth_working = True
             logger.info("✅ Bybit authentication successful! Market Data & Trade execution permissions verified.")
             return True
@@ -72,20 +108,18 @@ class BybitAdapter:
         if reduce_only:
             params['reduceOnly'] = True
             
-        try:
-            order = await self.exchange.create_order(
-                symbol=symbol,
-                type='market',
-                side=side,
-                amount=amount,
-                price=None,
-                params=params
-            )
-            logger.info(f"Market {side} order created for {symbol}: {order.get('id')}")
-            return order
-        except Exception as e:
-            logger.error(f"Error creating market order for {symbol}: {e}")
-            raise
+        logger.info(f"Creating market {side} order for {symbol} | Amount: {amount}")
+        order = await self._execute_with_retry(
+            self.exchange.create_order,
+            symbol=symbol,
+            type='market',
+            side=side,
+            amount=amount,
+            price=None,
+            params=params
+        )
+        logger.info(f"✅ Market {side} order created for {symbol}: {order.get('id')}")
+        return order
 
     async def create_limit_order(
         self, 
@@ -115,20 +149,18 @@ class BybitAdapter:
         if reduce_only:
             params['reduceOnly'] = True
             
-        try:
-            order = await self.exchange.create_order(
-                symbol=symbol,
-                type='limit',
-                side=side,
-                amount=amount,
-                price=price,
-                params=params
-            )
-            logger.info(f"Limit {side} order created for {symbol} at {price}: {order.get('id')}")
-            return order
-        except Exception as e:
-            logger.error(f"Error creating limit order for {symbol}: {e}")
-            raise
+        logger.info(f"Creating limit {side} order for {symbol} | Amount: {amount} | Price: {price}")
+        order = await self._execute_with_retry(
+            self.exchange.create_order,
+            symbol=symbol,
+            type='limit',
+            side=side,
+            amount=amount,
+            price=price,
+            params=params
+        )
+        logger.info(f"✅ Limit {side} order created for {symbol} at {price}: {order.get('id')}")
+        return order
 
     async def cancel_order(self, order_id: str, symbol: str) -> Dict[str, Any]:
         """
@@ -138,13 +170,14 @@ class BybitAdapter:
             logger.warning(f"Skipping cancel_order due to failed auth preflight (Fallback Mode).")
             return {"id": order_id, "status": "canceled"}
         
-        try:
-            res = await self.exchange.cancel_order(id=order_id, symbol=symbol)
-            logger.info(f"Order cancelled: {order_id} for {symbol}")
-            return res
-        except Exception as e:
-            logger.error(f"Error cancelling order {order_id} for {symbol}: {e}")
-            raise
+        logger.info(f"Cancelling order {order_id} for {symbol}...")
+        res = await self._execute_with_retry(
+            self.exchange.cancel_order,
+            id=order_id,
+            symbol=symbol
+        )
+        logger.info(f"✅ Order cancelled: {order_id} for {symbol}")
+        return res
 
     async def fetch_order_status(self, order_id: str, symbol: str) -> Dict[str, Any]:
         """
@@ -154,12 +187,11 @@ class BybitAdapter:
             logger.warning(f"Skipping fetch_order_status due to failed auth preflight (Fallback Mode).")
             return {"id": order_id, "status": "open"}
             
-        try:
-            order = await self.exchange.fetch_order(id=order_id, symbol=symbol)
-            return order
-        except Exception as e:
-            logger.error(f"Error fetching order {order_id} for {symbol}: {e}")
-            raise
+        return await self._execute_with_retry(
+            self.exchange.fetch_order,
+            id=order_id,
+            symbol=symbol
+        )
 
     async def fetch_open_positions(self, symbols: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
@@ -169,18 +201,17 @@ class BybitAdapter:
             logger.warning(f"Skipping fetch_open_positions due to failed auth preflight (Fallback Mode). Returns empty list.")
             return []
             
-        try:
-            # CCXT fetch_positions returns a list of position structures
-            positions = await self.exchange.fetch_positions(symbols)
-            # Filter for actively held positions (contracts > 0)
-            open_positions = [
-                pos for pos in positions 
-                if pos.get('contracts') is not None and float(pos['contracts']) > 0
-            ]
-            return open_positions
-        except Exception as e:
-            logger.error(f"Error fetching open positions: {e}")
-            raise
+        # CCXT fetch_positions returns a list of position structures
+        positions = await self._execute_with_retry(
+            self.exchange.fetch_positions,
+            symbols=symbols
+        )
+        # Filter for actively held positions (contracts > 0)
+        open_positions = [
+            pos for pos in positions 
+            if pos.get('contracts') is not None and float(pos['contracts']) > 0
+        ]
+        return open_positions
 
     async def watch_orders_loop(self):
         """
@@ -203,6 +234,38 @@ class BybitAdapter:
                     
                     logger.info(f"🔔 [Bybit] ORDER UPDATE | {sym} | {oid} | Status: {status.upper()} | Filled: {filled} @ {price}")
                     
+            except ccxt.AuthenticationError as e:
+                logger.error(f"❌ Bybit Order Watcher Auth Error: {e}")
+                await asyncio.sleep(60)
             except Exception as e:
-                logger.error(f"Bybit Order Watcher encountered error: {e}")
+                logger.error(f"⚠️ Bybit Order Watcher encountered error: {e}")
                 await asyncio.sleep(10) # Exponential backoff would be better, but this is stable
+
+    async def watch_trades_loop(self, symbol: str):
+        """
+        Subscribes to recent trades via WebSocket.
+        """
+        logger.info(f"Initializing Bybit Trades WebSocket stream for {symbol}...")
+        while True:
+            try:
+                trades = await self.exchange.watch_trades(symbol)
+                for t in trades:
+                    logger.debug(f"🔄 [Bybit] TRADE | {symbol} | {t.get('side')} {t.get('amount')} @ {t.get('price')}")
+            except Exception as e:
+                logger.error(f"⚠️ Bybit Trades Watcher encountered error: {e}")
+                await asyncio.sleep(5)
+
+    async def watch_order_book_loop(self, symbol: str, limit: int = 25):
+        """
+        Subscribes to order book snapshots via WebSocket.
+        """
+        logger.info(f"Initializing Bybit Order Book WebSocket stream for {symbol}...")
+        while True:
+            try:
+                orderbook = await self.exchange.watch_order_book(symbol, limit)
+                bids = orderbook['bids'][0] if len(orderbook['bids']) > 0 else []
+                asks = orderbook['asks'][0] if len(orderbook['asks']) > 0 else []
+                logger.debug(f"📊 [Bybit] ORDERBOOK | {symbol} | Best Bid: {bids} | Best Ask: {asks}")
+            except Exception as e:
+                logger.error(f"⚠️ Bybit Order Book Watcher encountered error: {e}")
+                await asyncio.sleep(5)

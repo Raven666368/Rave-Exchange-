@@ -7,10 +7,15 @@ const BYBIT_URL = BYBIT_TESTNET ? "https://api-testnet.bybit.com" : "https://api
 const BYBIT_WS_URL = BYBIT_TESTNET ? "wss://stream-testnet.bybit.com/v5/private" : "wss://stream.bybit.com/v5/private";
 let BYBIT_API_KEY = process.env["BYBIT_API_KEY"] || "YOUR_KEY";
 let BYBIT_API_SECRET = process.env["BYBIT_API_SECRET"] || "YOUR_SECRET";
+let USER_TIMEZONE = "UTC";
 
-export function setBybitCredentials(apiKey: string, apiSecret: string) {
+export function setBybitCredentials(apiKey: string, apiSecret: string, timezone?: string) {
   BYBIT_API_KEY = apiKey;
   BYBIT_API_SECRET = apiSecret;
+  if (timezone) {
+    USER_TIMEZONE = timezone;
+  }
+  console.log(`[Credentials] API Keys updated. Local Timezone set to: ${USER_TIMEZONE}`);
   if (bybitPrivateWs) {
     bybitPrivateWs.removeAllListeners("close");
     bybitPrivateWs.close();

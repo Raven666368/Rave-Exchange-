@@ -2,6 +2,14 @@
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Order Book ({{ symbol() }})</h2>
     <div class="flex gap-3 items-center">
+      <div class="flex items-center gap-1.5 bg-[#1e1e2e] rounded px-2 py-1 border border-white/5">
+        <span class="text-[8px] text-gray-500 uppercase font-bold pr-1 border-r border-white/10">Depth</span>
+        <select [value]="displayDepth()" (change)="updateDepth($event)" class="bg-transparent border-none text-[10px] text-[#00ff88] focus:outline-none font-mono cursor-pointer outline-none">
+          <option value="10" class="bg-[#1e222d] text-white">10</option>
+          <option value="20" class="bg-[#1e222d] text-white">20</option>
+          <option value="50" class="bg-[#1e222d] text-white">50</option>
+        </select>
+      </div>
       <div class="flex items-center gap-1.5 bg-[#1e1e2e] rounded px-2 py-1 border border-white/5 group/filter">
         <span class="text-[8px] text-gray-500 uppercase font-bold pr-1 border-r border-white/10">Min Size</span>
         <input 
