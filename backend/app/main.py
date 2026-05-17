@@ -65,8 +65,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+@app.get("/health")
+def health_endpoint():
+    return {"status": "ok"}
+
 @app.get("/")
-def health():
+def root():
     return {"status": "Rave Engine Running with Live Market Data Streams"}
 
 @app.post("/order")
