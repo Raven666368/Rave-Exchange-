@@ -1,0 +1,70 @@
+INFO:     Will watch for changes in these directories: ['/app/applet']
+INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
+INFO:     Started reloader process [713] using StatReload
+INFO:     Started server process [716]
+INFO:     Waiting for application startup.
+INFO:app.main:Starting Bybit Market Data Streams...
+INFO:app.main:Starting Redis Consumers & PnL Engine loop...
+INFO:     Application startup complete.
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+ERROR:app.events.bus:Failed to publish to market_ticks: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).

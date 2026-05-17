@@ -1,0 +1,105 @@
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">R</div>
+      <div>
+        <div class="brand-name">RAVE OPS</div>
+        <div class="brand-sub">Liquidity Adaptive Perpetuals Bot</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a routerLink="/trading-ops" routerLinkActive="active">Trading Ops</a>
+      <a routerLink="/trading-ops/ops" routerLinkActive="active">Due Diligence</a>
+      <a routerLink="/journal" routerLinkActive="active">Journal</a>
+      <a routerLink="/alerts" routerLinkActive="active">Alerts</a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="label">STATUS</div>
+      <div class="value online">Connected</div>
+      <div class="label">MODE</div>
+      <div class="value">Paper / Testnet / Live</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="top-row">
+        <button class="menu-btn" type="button" (click)="toggleMobileNav()">
+          ☰
+        </button>
+
+        <div class="top-left">
+          <h1>Trading Operations Console</h1>
+          <p>Session checks, validation gates, execution controls, and journaling.</p>
+        </div>
+
+        <div class="top-right">
+          @if (opsBadgeVm$ | async; as vm) {
+            <app-trading-ops-debug-badge
+              [mode]="vm.mode"
+              [killSwitchArmed]="vm.killSwitchArmed"
+              [lastSync]="vm.lastSync"
+              [connected]="vm.connected">
+            </app-trading-ops-debug-badge>
+          }
+        </div>
+      </div>
+    </header>
+
+    @if (mobileDrawerOpen$ | async; as mobileOpen) {
+      <button
+        class="mobile-drawer-backdrop"
+        [class.show]="mobileOpen"
+        (click)="closeMobileNav()"
+        (keyup.enter)="closeMobileNav()"
+        (keyup.space)="closeMobileNav()"
+        aria-label="Close mobile navigation"
+        type="button">
+      </button>
+
+      <aside
+        class="mobile-drawer"
+        [class.open]="mobileOpen"
+        [attr.aria-hidden]="!mobileOpen"
+        appSwipeClose
+        (swipeClose)="closeMobileNav()">
+        <div class="drawer-head">
+          <div class="drawer-title">Navigation</div>
+          <button class="menu-btn" type="button" (click)="closeMobileNav()">✕</button>
+        </div>
+
+        <nav class="nav mobile-nav">
+          <a routerLink="/trading-ops" routerLinkActive="active" (click)="closeMobileNav()">Trading Ops</a>
+          <a routerLink="/trading-ops/ops" routerLinkActive="active" (click)="closeMobileNav()">Due Diligence</a>
+          <a routerLink="/journal" routerLinkActive="active" (click)="closeMobileNav()">Journal</a>
+          <a routerLink="/alerts" routerLinkActive="active" (click)="closeMobileNav()">Alerts</a>
+        </nav>
+      </aside>
+    }
+
+    <section class="status-strip">
+      <div class="metric">
+        <span>Session</span>
+        <strong>LONDON</strong>
+      </div>
+      <div class="metric">
+        <span>Gate</span>
+        <strong>READY</strong>
+      </div>
+      <div class="metric">
+        <span>Risk</span>
+        <strong>0.25%</strong>
+      </div>
+      <div class="metric">
+        <span>Execution</span>
+        <strong>DRY RUN</strong>
+      </div>
+    </section>
+
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

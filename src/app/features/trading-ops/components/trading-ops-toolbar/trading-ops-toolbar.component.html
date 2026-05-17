@@ -1,0 +1,55 @@
+<div class="toolbar">
+  <div class="left">
+    <div class="title-group">
+      <div class="eyebrow">TRADING OPS</div>
+      <h2>Operations Control Strip</h2>
+      <p>
+        {{ connected ? 'Connected' : 'Offline' }}
+        @if(lastSync) {
+          <span> • Synced {{ lastSync }}</span>
+        }
+      </p>
+    </div>
+  </div>
+
+  <div class="center">
+    <button type="button" class="mode-btn" [class.active]="mode === 'PAPER'" (click)="modeChange.emit('PAPER')">
+      Paper
+    </button>
+    <button type="button" class="mode-btn" [class.active]="mode === 'TESTNET'" (click)="modeChange.emit('TESTNET')">
+      Testnet
+    </button>
+    <button type="button" class="mode-btn live" [class.active]="mode === 'LIVE'" (click)="modeChange.emit('LIVE')">
+      Live
+    </button>
+  </div>
+
+  <div class="right">
+    <div class="status-pill" [class.ok]="connected" [class.bad]="!connected">
+      {{ connected ? 'Link OK' : 'Link Down' }}
+    </div>
+
+    <div class="status-pill" [class.warn]="killSwitchArmed" [class.ok]="!killSwitchArmed">
+      {{ killSwitchArmed ? 'Kill Switch Armed' : 'Kill Switch Disarmed' }}
+    </div>
+
+    @if(!killSwitchArmed) {
+      <button
+        type="button"
+        class="action-btn"
+        (click)="armKillSwitch.emit()">
+        Arm Kill Switch
+      </button>
+    } @else {
+      <button
+        type="button"
+        class="action-btn danger"
+        (click)="disarmKillSwitch.emit()">
+        Disarm Kill Switch
+      </button>
+    }
+    <button type="button" class="action-btn" (click)="refresh.emit()">
+      Refresh
+    </button>
+  </div>
+</div>
