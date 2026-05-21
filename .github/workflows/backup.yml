@@ -11,7 +11,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Create Backup Archize
         run: |
-          tar -czf backup-$(date +%F).tar.gz --exclude='backup-*.tar.gz' .
+          tar -czf backup-$(date +%F).tar.gz \
+            --exclude='backup-*.tar.gz' \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.github' \
+            .
       - name: Archive Backup
         uses: actions/upload-artifact@v4
         with:
